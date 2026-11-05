@@ -1,0 +1,90 @@
+# 운영 구성. 실행: docker compose -p pipibooks -f infra/compose/compose.prod.yml --profile tunnel up -d
+# 변수: infra/compose/.env (PIPIBOOKS_VERSION, TUNNEL_ID)
+name: pipibooks
+
+x-defaults: &defaults
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options:
+      max-size: 10m
+      max-file: "5"
+
+services:
+  web:
+    <<: *defaults
+    image: ghcr.io/okabedev/pipibooks-web:${PIPIBOOKS_VERSION:?PIPIBOOKS_VERSION 필요}
+    mem_limit: 384m
+    networks: [edge]
+
+  core-api:
+    <<: *defaults
+    image: ghcr.io/okabedev/pipibooks-core-api:${PIPIBOOKS_VERSION:?PIPIBOOKS_VERSION 필요}
+    mem_limit: 768m
+    networks: [edge, internal]
+
+  event-collector:
+    <<: *defaults
+    image: ghcr.io/okabedev/pipibooks-event-collector:${PIPIBOOKS_VERSION:?PIPIBOOKS_VERSION 필요}
+    mem_limit: 768m
+    networks: [edge, internal]
+
+  catalog-worker:
+    <<: *defaults
+    image: ghcr.io/okabedev/pipibooks-catalog-worker:${PIPIBOOKS_VERSION:?PIPIBOOKS_VERSION 필요}
+    mem_limit: 768m
+    networks: [internal]
+
+  postgres:
+    <<: *defaults
+    image: postgres:18.6-alpine
+    mem_limit: 1g
+    env_file: ${POSTGRES_ENV_FILE:-../env/postgres.env}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql
+      - ../postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [internal]
+
+  redis:
+    <<: *defaults
+    image: redis:8.10.3-alpine
+    mem_limit: 256m
+    command:
+      ["redis-server", "--appendonly", "yes", "--appendfsync", "everysec"]
+    volumes:
+      - redisdata:/data
+    networks: [internal]
+
+  cloudflared:
+    <<: *defaults
+    image: cloudflare/cloudflared:2026.10.7
+    profiles: [tunnel]
+    mem_limit: 128m
+    command:
+      [
+        "tunnel",
+        "--no-autoupdate",
+        "--config",
+        "/etc/cloudflared/config.yml",
+        "run",
+        "${TUNNEL_ID:?TUNNEL_ID 필요}",
+      ]
+    volumes:
+      - ../cloudflared/config.yml:/etc/cloudflared/config.yml:ro
+      - ../cloudflared/credentials.json:/etc/cloudflared/credentials.json:ro
+    networks: [edge]
+
+networks:
+  edge:
+  internal:
+
+volumes:
+  pgdata:
+  redisdata:

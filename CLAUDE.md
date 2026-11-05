@@ -52,6 +52,7 @@
 | `bash scripts/github/setup-repo.sh` | GitHub 라벨·마일스톤·룰셋 재적용 |
 | `cd services && ./gradlew build` | 백엔드 빌드·테스트·정적 분석 (상세: `services/CLAUDE.md`) |
 | `pnpm --filter web test` | 웹 단위 테스트 (상세: `clients/CLAUDE.md`) |
+| `bash infra/scripts/build-local.sh && bash infra/scripts/smoke-test.sh` | 컨테이너 통합 스모크 테스트 (상세: `infra/CLAUDE.md`) |
 
 ## 문서 색인 (필요할 때만 읽는다)
 

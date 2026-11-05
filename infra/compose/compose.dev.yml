@@ -1,0 +1,24 @@
+# 개발용: Postgres와 Redis만. 실행: docker compose -f infra/compose/compose.dev.yml up -d
+name: pipibooks-dev
+
+services:
+  postgres:
+    image: postgres:18.6-alpine
+    env_file: ../env/postgres.env
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql
+      - ../postgres/init:/docker-entrypoint-initdb.d:ro
+
+  redis:
+    image: redis:8.10.3-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "127.0.0.1:6380:6379"
+    volumes:
+      - redisdata:/data
+
+volumes:
+  pgdata:
+  redisdata:
