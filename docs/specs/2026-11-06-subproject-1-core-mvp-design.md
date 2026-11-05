@@ -8,11 +8,11 @@
 
 ## 1. 목표와 범위
 
-**목표**: 비로그인으로 피드를 넘겨 보고, 소셜 로그인 후 관심 분야에 맞춘 피드와 위시를 쓸 수 있는 웹 서비스를 제한 공개(`v0.1.0`)한 뒤 일반 공개(`v0.1.x`)로 전환한다. 카드는 사람 손을 거치지 않고도 계속 공급된다.
+**목표**: 비로그인으로 피드를 넘겨 보고, 소셜 로그인 후 관심 분야에 맞춘 피드와 위시를 쓸 수 있는 웹 서비스를 제한 공개(`v0.1.0`)한 뒤 일반 공개(`v0.2.0`)로 전환한다. 카드는 사람 손을 거치지 않고도 계속 공급된다.
 
 **완료 기준**
 1. `v0.1.0` 제한 공개: 소셜 로그인(카카오·구글, 테스트 사용자), 관심 분야 온보딩, 신간 수집·운영자 시드, 카드 자동 발행과 관리자 사후 점검, 비로그인·로그인 피드, 위시·도서 검색, 카드 공유 페이지, 이벤트 수집, 백업·외부 모니터링·WAF
-2. `v0.1.x` 일반 공개 전환: 사용자 카드 신고, 이용약관·개인정보처리방침, 회원 탈퇴(익명화), OAuth 앱 프로덕션 전환
+2. `v0.2.0` 일반 공개 전환: 사용자 카드 신고, 이용약관·개인정보처리방침, 회원 탈퇴(익명화), OAuth 앱 프로덕션 전환
 
 **비목표**: 서재 상태 전이(`READING` 등)·별점·한줄평·독서 기록·통계(서브프로젝트 2), 앱·Apple 로그인(3), 학습 기반 추천(4), 신고 누적 자동 숨김, 이메일 수집
 
@@ -20,7 +20,7 @@
 
 | 항목 | 결정 | 근거 |
 |---|---|---|
-| 공개 단계 | 제한 공개 `v0.1.0` → 지인 사용 1~2주 → 일반 공개 `v0.1.x` | 공개 전환 작업이 작고, 실사용 데이터로 피드 가중치를 조정 |
+| 공개 단계 | 제한 공개 `v0.1.0` → 지인 사용 1~2주 → 일반 공개 `v0.2.0`(기능 추가라 SemVer상 Y 증가, `docs/conventions/git.md`) | 공개 전환 작업이 작고, 실사용 데이터로 피드 가중치를 조정 |
 | 카드 발행 | 기준을 통과한 초안은 자동 발행, 나머지는 관리자 대기열. 검수는 사후 점검으로 | ADR 0011 |
 | 사후 점검 | 최근 자동 발행 목록, 넘김 비율 점검 목록, 일반 공개 시 사용자 신고 | 1인 운영에서 피드가 끊기지 않게 |
 | 서재 범위 | 위시(`WISH`)만. `shelf_item` 테이블은 `docs/domain/model.md`의 전체 컬럼으로 생성(`reading_log`·`quote`는 서브프로젝트 2) | 서브프로젝트별 세션 경계와 로드맵 일치 |
@@ -48,7 +48,7 @@
 
 ## 4. 카탈로그 수집과 카드 초안 (catalog-worker)
 
-**클라이언트**: 코루틴 `WebClient`. 초당 호출 수(기본 1)와 `page_size`(기본 50)는 설정값. `000`·5xx·타임아웃은 지수 백오프로 3회 재시도, `010`·`011`은 즉시 실패와 오류 로그.
+**클라이언트**: 코루틴 `WebClient`. 초당 호출 수(기본 1)와 `page_size`(기본 50)는 설정값. 호출 한도는 하나를 공유하되, 사용자 요청(검색·import)이 배치 수집보다 먼저 한도를 얻는다(배치는 대기 중인 사용자 요청이 있으면 양보). `000`·5xx·타임아웃은 지수 백오프로 3회 재시도, `010`·`011`은 즉시 실패와 오류 로그.
 
 **수집 경로**
 - 신간: 매일 새벽 발행예정일 최근 14일을 하루 단위로 나눠 조회한다. 구간이 겹치므로 실패한 날짜는 다음 실행에서 다시 수집된다(상위 스펙의 재처리 큐를 이것으로 갈음). 하루 결과가 500건을 넘으면 경고 로그를 남긴다.
@@ -62,7 +62,7 @@
 
 **내부 API** (`internal` 네트워크 전용)
 - `GET /internal/books/search?q=&page=`: 제목 검색 결과(저장하지 않음)
-- `POST /internal/books/import {isbn}`: upsert 후 `bookId` 반환
+- `POST /internal/books/import {isbn}`: 이미 `book`에 있으면 외부 호출 없이 `bookId`를 반환하고, 없을 때만 국립중앙도서관에서 조회해 upsert한다
 - `POST /internal/collect-runs {type, isbns|keyword}`: 운영자 시드·수동 실행
 
 **카드 초안**: 소개가 있는 도서에 `RuleBasedCardDraftGenerator` v1을 적용해 `catalog.card_draft`를 만든다.
@@ -96,10 +96,10 @@
 - 비로그인: 인기도·신선도·무작위 항만
 
 **후보와 세션**
-- 후보는 최근 발행 카드 최대 2,000개에서 내 서재 도서와 최근 7일 노출 카드를 뺀다. 노출 기록은 Redis 집합(회원 ID 또는 `anonymous_id`별, 7일 TTL)에 core가 응답할 때 쓴다.
-- 커서 없는 요청은 상위 500개를 정렬해 Redis에 30분 캐시하고 20개씩 응답한다. 커서는 세션 ID와 위치를 담은 불투명 문자열이다.
+- 후보는 최근 발행 카드 최대 2,000개에서 내 서재 도서와 최근 7일 안에 실제로 본 카드를 뺀다. "본 카드"는 event-collector가 `CARD_IMPRESSION`을 받을 때 Redis 집합(`anonymous_id`별, 7일 TTL, 키는 `libs/event-schema`)에 기록하고 core가 읽는다. 응답만 하고 화면에 나오지 않은 카드는 빼지 않는다(카드 수가 적은 초기에 피드가 금방 바닥나지 않게).
+- 커서 없는 요청은 상위 500개를 정렬해 Redis에 30분 캐시하고 20개씩 응답한다. 커서는 세션 ID와 위치를 담은 불투명 문자열이다. 페이지를 응답할 때 그사이 `PUBLISHED`가 아니게 된 카드는 뺀다.
 - 세션이 만료되면 오류 없이 새 세션으로 이어 준다. 후보가 바닥나면 빈 목록과 `nextCursor: null`을 준다.
-- 비로그인 클라이언트는 `anonymous_id`(UUID, localStorage)를 `X-Anonymous-Id` 헤더로 보낸다.
+- 웹 클라이언트는 로그인 여부와 관계없이 `anonymous_id`(UUID, localStorage)를 피드 요청의 `X-Anonymous-Id` 헤더와 모든 이벤트에 넣는다.
 
 **카드 조회**: `GET /v1/cards/{id}`는 공개 API이며 공유 페이지가 쓴다. `HIDDEN`·`DRAFT`는 404 `CARD_NOT_FOUND`. 카드 응답에는 위시 담기용 `isbn`을 넣는다.
 
@@ -119,7 +119,7 @@
 - JWT는 ES256. core만 개인키를 갖고, event-collector는 공개키로 검증한다.
 - CORS는 core와 event-collector 모두 `https://pipibooks.com`만 credentials와 함께 허용한다(collector는 `Authorization` 헤더 허용).
 - 제공자에게서 닉네임·프로필 이미지만 받고 이메일은 받지 않는다.
-- 관리자: 환경 변수 `ADMIN_SOCIAL_ACCOUNTS=KAKAO:<id>,GOOGLE:<id>`에 있는 계정은 로그인 때 `ADMIN`이 된다. `/v1/admin/**`은 `ADMIN` 필요, 웹 `/admin`은 Cloudflare Access로도 막는다.
+- 관리자: 환경 변수 `ADMIN_SOCIAL_ACCOUNTS=KAKAO:<id>,GOOGLE:<id>`에 있는 계정은 로그인 때 `ADMIN`, 목록에서 빠진 계정은 다음 로그인 때 `USER`가 된다(역할은 로그인마다 이 값과 맞춘다). `/v1/admin/**`은 `ADMIN` 필요, 웹 `/admin`은 Cloudflare Access로도 막는다.
 - `local` 프로필과 E2E는 WireMock 가짜 OAuth 제공자를 쓴다.
 
 **온보딩**: `member.onboarded_at`이 비어 있으면 로그인 직후 `/onboarding`으로 보낸다. 1~3개 선택 또는 건너뛰기 후 `onboarded_at`을 기록한다. `GET /v1/me`, `PUT /v1/me/interests`.
@@ -140,7 +140,7 @@
 ## 8. 이벤트 수집 (event-collector)
 
 - `POST /v1/events`(최대 50건): `{anonymousId, sessionId, platform, appVersion, events:[{type, cardId, bookId, slideIndex, dwellMs, occurredAt}]}`. 유효한 `Authorization`이 있으면 `member_id`를 붙이고, 무효해도 거부하지 않고 익명으로 처리한다.
-- `libs/event-schema`로 검증 후 Stream `events:user`에 `XADD`(근사 MAXLEN 1,000,000)하고 `202`.
+- `libs/event-schema`로 검증 후 Stream `events:user`에 `XADD`(근사 MAXLEN 100,000, 약 30MB)하고 `202`.
 - 컨슈머 그룹: 500건 또는 1초 단위로 `events.user_event`에 배치 INSERT, 카드 카운터 갱신, ACK. 60초 이상 멈춘 메시지는 `XAUTOCLAIM`, 3회 실패하면 `events:dead`로 옮긴다.
 - 월별 파티션은 기동 시와 매일 현재 달부터 2개월 뒤까지 만든다.
 - core의 서버 이벤트(`SHELF_ADD`, `IDENTITY_LINK`)도 같은 Stream에 넣는다.
@@ -172,6 +172,7 @@
 - 데스크톱: 가운데 9:16 열, 슬라이드는 화살표 버튼과 ←→, 카드는 휠과 ↑↓.
 - 슬라이드 배경색은 KDC 대분류별로 다르게 한다.
 - 비로그인 사용자가 위시를 누르면 로그인 후 원래 카드로 돌아와 위시 담기를 마저 끝낸다.
+- Refresh 쿠키는 `api.pipibooks.com/v1/auth`에만 전송되므로 웹 서버는 로그인 상태를 알 수 없다. 로그인이 필요한 화면(`/shelf`, `/me`, `/onboarding`, `/admin`)은 클라이언트에서 토큰을 확인하고 이동시킨다. 서버 렌더링은 공개 화면(`/cards/[id]`)에만 쓴다.
 - core API 호출은 `clients/packages/api-client`(OpenAPI 생성물)로만 한다. 이벤트 전송은 `packages/shared`의 트래커가 맡는다. 서버 렌더링(공유 페이지)은 내부 주소(`http://core:8080`, 환경 변수)로 core를 호출한다. 생성 도구(후보: `openapi-typescript` + `openapi-fetch`)는 ADR을 먼저 쓴다.
 - 웹 피드 Task 첫 단계에서 목 데이터로 피드 화면을 확인받은 뒤 API를 연결한다.
 
@@ -188,6 +189,7 @@
 - **외부 모니터링**: UptimeRobot(무료)으로 `https://pipibooks.com/healthz`, `https://api.pipibooks.com/actuator/health`를 5분 간격 확인. 백업·수집은 Healthchecks.io 하트비트.
 - **WAF**: Cloudflare 무료 요청 빈도 제한 규칙 1개에 `/v1/auth/*`와 `/v1/events`를 묶는다. 값은 일반 공개 전에 실제 트래픽으로 조정한다. 설정값과 절차는 `docs/ops/`에 둔다.
 - **시크릿 추가**: 국립중앙도서관 키, 카카오·구글 클라이언트 시크릿, JWT ES256 키 쌍, `ADMIN_SOCIAL_ACCOUNTS`, R2 키, age 키, Healthchecks.io URL. `infra/env/*.env.example`에 항목을 추가한다.
+- **Redis 메모리**: 컨테이너 한도가 256MB이므로 `maxmemory 200mb`, `maxmemory-policy volatile-lru`로 설정한다. TTL이 있는 캐시·집합만 밀려나고 TTL이 없는 Stream은 지워지지 않는다. 캐시 키에는 반드시 TTL을 단다.
 - **스모크 테스트**: `smoke-test.sh`에 피드 조회와 이벤트 전송(202)을 추가한다.
 
 ## 11. 공유 코드와 스킬
@@ -202,7 +204,7 @@
 - `add-migration` 스킬: 첫 Flyway 마이그레이션을 만든 직후 작성한다.
 - `add-api-endpoint` 스킬: 위시 API 완성 직후 그 코드를 기준으로 작성한다.
 
-## 12. 일반 공개 전환 (`v0.1.x`)
+## 12. 일반 공개 전환 (`v0.2.0`)
 
 - 카드 신고: `core.card_report`(`card_id`, `member_id`, 사유 `INAPPROPRIATE`/`WRONG_INFO`/`INSUFFICIENT`/`OTHER`, 설명, 처리 상태). (카드, 회원) UNIQUE, 로그인 필수, 자동 숨김 없음. 관리자 신고 목록(신고 수 순)에서 편집·숨김·기각.
 - 이용약관·개인정보처리방침 페이지(`/terms`, `/privacy`)
@@ -218,7 +220,7 @@
 | `catalog` | `book`에 `ea_add_code`·`form`·`ebook_yn`·`set_isbn`·`publish_predate` 추가. `card_draft`에 `auto_publishable`·`blocked_reasons` 추가. `collect_run` 신규 |
 | `core` | `member.onboarded_at`, `refresh_token.family_id`, `card.edited_at` 추가. `card.book_id` UNIQUE. `sync_cursor` 신규. 일반 공개 단계에서 `card_report` 신규 |
 | `events` | 서버 이벤트 `MEMBER_DELETED` 추가(일반 공개 단계). 피드 인기도는 `SHELF_ADD` 이벤트 대신 `core.shelf_item` 생성 시각으로 계산 |
-| Redis | 피드 세션 목록, 노출 집합, 검색 캐시, Stream `events:user`·`events:dead`, 카드 카운터 해시 |
+| Redis | 피드 세션 목록(core), 본 카드 집합·카드 카운터(event-collector), 검색 캐시(core), Stream `events:user`·`events:dead` |
 
 ## 14. 테스트
 
