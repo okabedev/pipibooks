@@ -53,7 +53,7 @@ Refs: #<이슈번호>
 3. 커밋 `chore(repo): vX.Y.Z 릴리스 준비` → `git push -u origin release/X.Y.Z`
 4. `gh pr create --base main --title "chore(repo): vX.Y.Z 릴리스"` → CI 통과 후 `gh pr merge --merge`
 5. 태그: `git switch main && git pull --ff-only && git tag -a vX.Y.Z -m "vX.Y.Z" && git push origin vX.Y.Z`
-6. 릴리스 워크플로(`release.yml`)가 GHCR 이미지 4개와 GitHub 릴리스를 만든다: `gh run watch`로 확인
+6. 릴리스 워크플로(`release.yml`)가 GHCR 이미지 5개(web, core, catalog-worker, event-collector, cloudflared)와 GitHub 릴리스를 만든다: `gh run watch`로 확인
 7. 백머지: `gh pr create --base develop --head main --title "chore(repo): vX.Y.Z 백머지"` → `gh pr merge --merge`
 8. 배포(호스트): `bash infra/scripts/deploy.sh vX.Y.Z` (상세: `docs/ops/deploy.md`)
 
