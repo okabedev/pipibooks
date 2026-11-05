@@ -2,9 +2,11 @@
 source "$(dirname "$0")/lib.sh"
 GUARD="$REPO_ROOT/.claude/hooks/guard-bash.mjs"
 
-tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
+tmp="$(mktemp -d)"; tmp2="$(mktemp -d)"; trap 'rm -rf "$tmp" "$tmp2"' EXIT
 git -C "$tmp" init -q -b develop
 git -C "$tmp" -c user.name=t -c user.email=t@t commit -q --allow-empty -m init
+git -C "$tmp2" init -q -b feature/9-other
+git -C "$tmp2" -c user.name=t -c user.email=t@t commit -q --allow-empty -m init
 
 on() { git -C "$tmp" checkout -q -B "$1"; }
 # guard <command> : 훅 JSON을 stdin으로 넣는다. exit 0=허용, 2=차단
@@ -36,4 +38,31 @@ assert_pass "일반 명령 허용" guard 'ls -la'
 assert_pass "git -C 경로 commit은 그 저장소 브랜치로 판정" guard "git -C $tmp commit -m x"
 on develop
 assert_pass "develop에서 git -C 경로 commit 차단" blocked "git -C $tmp commit -m x"
+
+# 최종 리뷰 Important 1: 우회 경로
+on feature/3-docs
+assert_pass "commit -n(--no-verify 단축) 차단" blocked 'git commit -n -m x'
+assert_pass "commit -nm 결합 플래그 차단" blocked 'git commit -nm x'
+assert_pass "LEFTHOOK=0 차단" blocked 'LEFTHOOK=0 git commit -m x'
+assert_pass "core.hooksPath 변경 차단" blocked 'git -c core.hooksPath=/dev/null commit -m x'
+assert_pass "push -uf 결합 플래그 차단" blocked 'git push -uf origin feature/3-docs'
+assert_pass "feature 브랜치 merge 허용" guard 'git merge feature/4-x'
+assert_pass "git log -n 5 허용" guard 'git log -n 5'
+on develop
+assert_pass "env git commit 차단" blocked 'env git commit -m x'
+assert_pass "bash -c 안의 commit 차단" blocked 'bash -c "git commit -m x"'
+assert_pass "서브셸 commit 차단" blocked '(git commit -m x)'
+assert_pass "develop에서 merge 차단" blocked 'git merge feature/4-x'
+assert_pass "develop에서 cherry-pick 차단" blocked 'git cherry-pick abc123'
+assert_pass "-c 옵션 뒤 commit도 develop이면 차단" blocked 'git -c user.name=x commit -m x'
+
+# 최종 리뷰 Important 2: 오탐
+assert_pass "cd로 feature 저장소 이동 후 commit 허용" guard "cd $tmp2 && git commit -m x"
+assert_pass "따옴표 안의 git commit 문자열 허용" guard 'echo "a && git commit"'
+assert_pass "heredoc 본문의 git commit 문자열 허용" guard "$(printf 'cat > f <<EOF\ngit commit -m x\nEOF')"
+assert_pass "grep 인자의 --no-verify 허용" guard 'grep -rn -- --no-verify docs'
+
+# 최종 리뷰 Minor: 해석할 수 없는 훅 입력은 차단(fail-closed)
+bad_input_code() { echo 'not json' | node "$GUARD" >/dev/null 2>&1; echo $?; }
+assert_pass "잘못된 훅 입력은 exit 2로 차단" test "$(bad_input_code)" = 2
 finish

@@ -1,5 +1,5 @@
-# 운영 구성. 실행: docker compose -p pipibooks -f infra/compose/compose.prod.yml --profile tunnel up -d
-# 변수: infra/compose/.env (PIPIBOOKS_VERSION, TUNNEL_ID)
+# 운영 구성. 기동·버전 변경은 infra/scripts/deploy.sh로만 한다(docs/ops/deploy.md).
+# 변수: infra/compose/.env — PIPIBOOKS_VERSION(deploy.sh가 갱신), TUNNEL_ID
 name: pipibooks
 
 x-defaults: &defaults
@@ -41,7 +41,8 @@ services:
     mem_limit: 1g
     env_file: ${POSTGRES_ENV_FILE:-../env/postgres.env}
     ports:
-      - "127.0.0.1:5432:5432"
+      # 운영은 127.0.0.1:5432. 스모크 테스트는 127.0.0.1: (임의 포트)로 바꿔 운영과 충돌하지 않게 한다.
+      - "${POSTGRES_PUBLISH:-127.0.0.1:5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql
       - ../postgres/init:/docker-entrypoint-initdb.d:ro
@@ -78,7 +79,13 @@ services:
       ]
     volumes:
       - ../cloudflared/config.yml:/etc/cloudflared/config.yml:ro
-      - ../cloudflared/credentials.json:/etc/cloudflared/credentials.json:ro
+      # 인증 정보 파일이 없으면 디렉토리를 만들지 않고 기동을 실패시킨다.
+      - type: bind
+        source: ../cloudflared/credentials.json
+        target: /etc/cloudflared/credentials.json
+        read_only: true
+        bind:
+          create_host_path: false
     networks: [edge]
 
 networks:

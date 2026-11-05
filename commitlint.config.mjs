@@ -31,6 +31,7 @@ export default {
     "type-enum": [2, "always", types],
     "scope-enum": [2, "always", scopes],
     "scope-empty": [2, "never"],
+    // PR 제목 검사(ci.yml pr-title)와 같은 50자. squash 시 붙는 " (#N)"은 GitHub가 만든 커밋이라 검사 대상이 아니다.
     "subject-max-length": [2, "always", 50],
     "subject-full-stop": [2, "never", "."],
     "subject-case": [0],

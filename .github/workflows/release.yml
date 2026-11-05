@@ -12,28 +12,41 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
       - name: 버전 결정
         run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
-      - uses: actions/setup-java@v6.2.0
+      - name: 태그가 main에 있는지 확인
+        run: |
+          git fetch origin main
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main || { echo "태그 커밋이 main에 없다"; exit 1; }
+      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
         with:
           distribution: temurin
           java-version: "25"
-      - uses: gradle/actions/setup-gradle@v6.4.1
-      - uses: docker/login-action@v4.7.0
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+      - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: 같은 버전 이미지 덮어쓰기 방지
+        run: |
+          for s in web core-api catalog-worker event-collector; do
+            if docker manifest inspect "ghcr.io/okabedev/pipibooks-$s:$VERSION" >/dev/null 2>&1; then
+              echo "이미 존재: pipibooks-$s:$VERSION. 버전 태그는 불변이다(새 버전으로 릴리스)."; exit 1
+            fi
+          done
       - name: JVM 서비스 이미지 푸시 (Jib)
         working-directory: services
         env:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: ./gradlew jib -Pversion="$VERSION" --console=plain
-      - uses: docker/setup-buildx-action@v4.4.1
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
       - name: web 이미지 푸시
-        uses: docker/build-push-action@v7.4.0
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           file: clients/web/Dockerfile

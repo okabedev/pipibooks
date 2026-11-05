@@ -8,7 +8,9 @@
   "scripts": {
     "prepare": "lefthook install",
     "test:scripts": "bash scripts/tests/run.sh",
-    "check:docs": "bash scripts/check-docs.sh"
+    "check:docs": "bash scripts/check-docs.sh",
+    "format:check": "prettier --check \"**/*.{json,yml,yaml,mjs,js,ts,tsx,css}\"",
+    "test:e2e:docker": "bash scripts/e2e-docker.sh"
   },
   "devDependencies": {
     "@commitlint/cli": "21.2.4",

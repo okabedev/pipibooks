@@ -25,23 +25,30 @@
 - [ ] 대시보드 Zero Trust → Access: 애플리케이션 `pipibooks.com/admin*`, 정책은 운영자 이메일만 허용
 
 **GHCR**
-- [ ] 첫 릴리스 후 GitHub → Packages에서 `pipibooks-web`, `pipibooks-core-api`, `pipibooks-catalog-worker`, `pipibooks-event-collector`를 Public으로 변경(호스트가 로그인 없이 pull)
+- [ ] 이미지가 로그인 없이 pull 되는지 확인: `docker logout ghcr.io; docker pull ghcr.io/okabedev/pipibooks-web:<버전>`. 패키지는 Public 저장소의 공개 범위를 이어받는다(v0.0.1에서 확인). 실패하면 GitHub → Packages에서 Public으로 바꾼다.
 
-**시크릿 파일**
+**운영 체크아웃** (개발 작업 트리와 분리)
+- [ ] `git -C ~/projects/pipibooks worktree add ~/pipibooks-prod v0.0.1` — 운영은 항상 이 디렉토리에서 배포 태그를 체크아웃해 실행한다. compose 파일·터널 설정·init 스크립트가 이미지와 같은 리비전이어야 하기 때문이다.
+- 이후 시크릿 파일과 `credentials.json`은 `~/pipibooks-prod` 아래에 둔다.
+
+**시크릿 파일** (`~/pipibooks-prod`에서)
 - [ ] `cp infra/env/postgres.env.example infra/env/postgres.env` 후 값을 `openssl rand -base64 32`로 채움
-- [ ] `cp infra/compose/.env.example infra/compose/.env` 후 `TUNNEL_ID` 입력
+- [ ] `cp infra/compose/.env.example infra/compose/.env` 후 `TUNNEL_ID` 입력(`PIPIBOOKS_VERSION`은 비워 둔다)
 
 ## 2. 배포
 ```bash
+cd ~/pipibooks-prod
+git fetch --tags && git checkout vX.Y.Z
 bash infra/scripts/deploy.sh vX.Y.Z
 ```
-1. 이미지 pull — 실패하면 아무것도 바꾸지 않고 종료
-2. (서브프로젝트 1부터) DB 백업
-3. `compose --profile tunnel up -d`
-4. 헬스체크(core-api, catalog-worker, event-collector, web) — 성공하면 `infra/compose/.deployed-version`에 기록
-5. 헬스체크 실패 시 `.deployed-version`의 이전 버전으로 다시 기동하고 exit 1
+1. 체크아웃이 `vX.Y.Z` 태그인지 확인 — 아니면 아무것도 바꾸지 않고 종료
+2. 이미지 pull — 실패하면 아무것도 바꾸지 않고 종료
+3. (서브프로젝트 1부터) DB 백업
+4. `compose --profile tunnel up -d` 후 헬스체크(core-api, catalog-worker, event-collector, web)
+5. 성공하면 `infra/compose/.env`의 `PIPIBOOKS_VERSION`을 갱신한다. 이 값이 배포된 버전의 단일 기준이다.
+6. up 또는 헬스체크가 실패하면 기록된 이전 버전으로 다시 기동하고 헬스체크한다. 결과는 `롤백 완료` / `ROLLBACK FAILED` / `롤백할 이전 버전이 없습니다` 중 하나로 출력하고 exit 1
 
-수동 롤백: `bash infra/scripts/deploy.sh <이전 버전>`
+수동 롤백: `git checkout v<이전 버전> && bash infra/scripts/deploy.sh v<이전 버전>` (자동 롤백은 새 리비전의 compose 파일로 이전 이미지를 띄우므로, 구성 변경이 있었다면 수동 롤백으로 리비전까지 맞춘다)
 
 ## 3. 배포 확인
 - `curl -fsS https://pipibooks.com | grep -o '<h1[^>]*>pipibooks</h1>'`
@@ -54,4 +61,4 @@ bash infra/scripts/deploy.sh vX.Y.Z
 |---|---|
 | `docker compose -p pipibooks -f infra/compose/compose.prod.yml --profile tunnel ps` | 상태 |
 | `docker compose -p pipibooks -f infra/compose/compose.prod.yml logs -f --tail 100 <서비스>` | 로그 |
-| `cat infra/compose/.deployed-version` | 배포된 버전 |
+| `grep PIPIBOOKS_VERSION infra/compose/.env` | 배포된 버전 |
