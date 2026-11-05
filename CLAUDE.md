@@ -66,6 +66,7 @@
 | `docs/domain/feed.md` | 피드 점수·이벤트 수집을 다룰 때 |
 | `docs/conventions/git.md` | 브랜치·커밋·PR·릴리스 절차가 필요할 때 |
 | `docs/conventions/api.md` | REST API를 추가·변경할 때 |
+| `docs/ops/deploy.md` | 호스트 준비·배포·롤백·운영 확인이 필요할 때 |
 | `.claude/skills/start-feature/` | 새 작업을 시작할 때(스킬 `start-feature`) |
 | `.claude/skills/release/` | 릴리스할 때(스킬 `release`) |
 

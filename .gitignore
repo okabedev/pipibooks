@@ -13,3 +13,4 @@ infra/compose/.env
 .superpowers/
 .claude/settings.local.json
 .pnpm-store/
+infra/compose/.deployed-version

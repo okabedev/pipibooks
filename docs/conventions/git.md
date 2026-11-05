@@ -45,5 +45,16 @@ Refs: #<이슈번호>
 - 서버·웹: SemVer 단일 버전 `vX.Y.Z`. 앱: `app-vX.Y.Z`.
 - `CHANGELOG.md`는 git-cliff로 생성한다.
 
-## 릴리스 절차
-(서브프로젝트 0 Task 9에서 작성)
+## 릴리스 절차 (스킬 `release`)
+버전 `X.Y.Z`는 SemVer로 정한다(1.0 전에는 기능 추가 시 Y, 수정만 있으면 Z).
+1. `git switch develop && git pull --ff-only && git switch -c release/X.Y.Z`
+2. CHANGELOG 생성:
+   `docker run --rm -u "$(id -u):$(id -g)" -v "$PWD":/app -w /app orhunp/git-cliff:2.14.2 --tag vX.Y.Z -o CHANGELOG.md`
+3. 커밋 `chore(repo): vX.Y.Z 릴리스 준비` → `git push -u origin release/X.Y.Z`
+4. `gh pr create --base main --title "chore(repo): vX.Y.Z 릴리스"` → CI 통과 후 `gh pr merge --merge`
+5. 태그: `git switch main && git pull --ff-only && git tag -a vX.Y.Z -m "vX.Y.Z" && git push origin vX.Y.Z`
+6. 릴리스 워크플로(`release.yml`)가 GHCR 이미지 4개와 GitHub 릴리스를 만든다: `gh run watch`로 확인
+7. 백머지: `gh pr create --base develop --head main --title "chore(repo): vX.Y.Z 백머지"` → `gh pr merge --merge`
+8. 배포(호스트): `bash infra/scripts/deploy.sh vX.Y.Z` (상세: `docs/ops/deploy.md`)
+
+핫픽스는 `hotfix/X.Y.Z`를 `main`에서 만들고 4~8단계를 같은 방식으로 진행한다.
