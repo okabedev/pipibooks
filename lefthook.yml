@@ -1,4 +1,6 @@
 # 로컬 git 훅. 규칙: docs/conventions/git.md
+output:
+  - failure
 commit-msg:
   commands:
     commitlint:
