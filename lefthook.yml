@@ -22,3 +22,6 @@ pre-commit:
       exclude:
         - pnpm-lock.yaml
       run: pnpm exec prettier --check {staged_files}
+    ktlint:
+      glob: "services/**/*.{kt,kts}"
+      run: cd services && ./gradlew ktlintCheck --quiet
