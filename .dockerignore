@@ -6,3 +6,4 @@
 .superpowers
 services
 infra/env
+**/.env*

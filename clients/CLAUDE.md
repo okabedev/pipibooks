@@ -26,8 +26,7 @@
 ## 테스트 규칙
 - TDD: 실패하는 테스트 먼저.
 - 단위: Vitest + Testing Library(`src/**/*.test.tsx`, jsdom).
-- E2E: Playwright(`web/e2e/`, chromium). 호스트에 브라우저 의존 라이브러리가 없으면 컨테이너에서 실행한다:
-  `docker run --rm -e CI=1 -v "$PWD":/repo -w /repo/clients/web node:26.13.0-bookworm bash -c "npm i -g pnpm@12.16.1 && pnpm exec playwright install --with-deps chromium && pnpm test:e2e"`
+- E2E: Playwright(`web/e2e/`, chromium). 호스트에 브라우저 의존 라이브러리가 없으면 `pnpm test:e2e:docker`(루트)로 컨테이너에서 실행한다. 저장소를 읽기 전용으로 마운트하므로 호스트 `node_modules`를 바꾸지 않는다. 저장소를 쓰기 가능하게 마운트한 채 컨테이너에서 pnpm을 실행하지 않는다.
 
 ## 명령 (루트에서 실행)
 | 명령 | 용도 |

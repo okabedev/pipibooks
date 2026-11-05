@@ -6,6 +6,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 COMPOSE_FILE="$ROOT/infra/compose/compose.prod.yml"
 ENV_FILE="${ENV_FILE:-$ROOT/infra/compose/.env}"
+CREDENTIALS_FILE="${CREDENTIALS_FILE:-$ROOT/infra/cloudflared/credentials.json}"
 DOCKER_BIN="${DOCKER_BIN:-docker}"
 HEALTH_RETRIES="${HEALTH_RETRIES:-30}"
 SKIP_REV_CHECK="${SKIP_REV_CHECK:-0}"
@@ -25,6 +26,16 @@ if [ "$SKIP_REV_CHECK" != 1 ]; then
   fi
 fi
 
+# 터널 준비 확인: 인증 정보 파일이 없으면 Docker가 그 경로에 빈 디렉토리를 만들어 버린다.
+if [ ! -f "$CREDENTIALS_FILE" ]; then
+  echo "터널 credentials 파일이 없다: $CREDENTIALS_FILE (docs/ops/deploy.md 1장)" >&2
+  exit 1
+fi
+if [ -z "$(sed -n 's/^TUNNEL_ID=//p' "$ENV_FILE" 2>/dev/null | tail -n 1)" ]; then
+  echo "TUNNEL_ID가 비어 있다: $ENV_FILE" >&2
+  exit 1
+fi
+
 prev="$(sed -n 's/^PIPIBOOKS_VERSION=//p' "$ENV_FILE" 2>/dev/null | tail -n 1)"
 
 compose() { # <X.Y.Z> <args...>
@@ -33,7 +44,7 @@ compose() { # <X.Y.Z> <args...>
 }
 
 check() { # <network> <url>
-  "$DOCKER_BIN" run --rm --network "${PROJECT}_$1" "$CURL_IMAGE" -fsS \
+  "$DOCKER_BIN" run --rm --network "${PROJECT}_$1" "$CURL_IMAGE" -fsS --connect-timeout 3 --max-time 5 \
     --retry "$HEALTH_RETRIES" --retry-delay 2 --retry-all-errors "$2" | grep -q '"UP"'
 }
 

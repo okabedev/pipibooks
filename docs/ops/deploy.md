@@ -6,17 +6,17 @@
 운영 호스트는 이 Windows PC(WSL2 + Docker Desktop)다.
 
 **Docker Desktop**
-- [ ] Settings → General: "Start Docker Desktop when you sign in" 켜기
-- [ ] Settings → Software updates: 자동 확인·다운로드 끄기(업데이트는 계획된 시각에 수동으로)
-- [ ] Settings → Resources: Resource Saver 끄기
+- [x] Settings → General: "Start Docker Desktop when you sign in" 켜기
+- [x] Settings → Software updates: 자동 확인·다운로드 끄기(업데이트는 계획된 시각에 수동으로)
+- [x] Settings → Resources: Resource Saver 끄기
 
 **Windows**
-- [ ] 자동 로그인: Sysinternals Autologon으로 설정(비밀번호는 LSA에 암호화 저장)
+- [x] 자동 로그인: Sysinternals Autologon으로 설정(비밀번호는 LSA에 암호화 저장)
 - [ ] 자동 로그인 직후 화면 잠금: 작업 스케줄러 → 작업 만들기 → 트리거 "로그온할 때" → 동작 `rundll32.exe user32.dll,LockWorkStation`
-- [ ] 전원: 절전 "안 함", 활성 시간(업데이트 재부팅 회피) 설정, 업데이트 재부팅은 새벽
+- [x] 전원: 절전 "안 함", 활성 시간(업데이트 재부팅 회피) 설정, 업데이트 재부팅은 새벽
 
 **Cloudflare**
-- [ ] 도메인 `pipibooks.com` 등록(Cloudflare Registrar 권장)
+- [x] 도메인 `pipibooks.com` 등록(Cloudflare Registrar 권장)
 - [ ] `cloudflared` 설치 후 로그인: `docker run --rm -it -v ~/.cloudflared:/home/nonroot/.cloudflared cloudflare/cloudflared:2026.10.7 tunnel login`
 - [ ] 터널 생성: `... tunnel create pipibooks` → 출력된 터널 ID와 `~/.cloudflared/<ID>.json` 확인
 - [ ] 인증 정보 복사: `cp ~/.cloudflared/<ID>.json infra/cloudflared/credentials.json` (gitignore 대상)
@@ -25,7 +25,7 @@
 - [ ] 대시보드 Zero Trust → Access: 애플리케이션 `pipibooks.com/admin*`, 정책은 운영자 이메일만 허용
 
 **GHCR**
-- [ ] 첫 릴리스 후 GitHub → Packages에서 `pipibooks-web`, `pipibooks-core-api`, `pipibooks-catalog-worker`, `pipibooks-event-collector`를 Public으로 변경(호스트가 로그인 없이 pull)
+- [ ] 이미지가 로그인 없이 pull 되는지 확인: `docker logout ghcr.io; docker pull ghcr.io/okabedev/pipibooks-web:<버전>`. 패키지는 Public 저장소의 공개 범위를 이어받는다(v0.0.1에서 확인). 실패하면 GitHub → Packages에서 Public으로 바꾼다.
 
 **운영 체크아웃** (개발 작업 트리와 분리)
 - [ ] `git -C ~/projects/pipibooks worktree add ~/pipibooks-prod v0.0.1` — 운영은 항상 이 디렉토리에서 배포 태그를 체크아웃해 실행한다. compose 파일·터널 설정·init 스크립트가 이미지와 같은 리비전이어야 하기 때문이다.

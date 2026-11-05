@@ -6,7 +6,16 @@ import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { resolve } from "node:path";
 
-const input = JSON.parse(readFileSync(0, "utf8") || "{}");
+// 입력을 해석할 수 없으면 검사도 할 수 없으므로 차단한다(fail-closed).
+let input;
+try {
+  input = JSON.parse(readFileSync(0, "utf8") || "{}");
+} catch {
+  process.stderr.write(
+    "차단됨: 가드 훅이 입력을 해석하지 못했습니다(.claude/hooks/guard-bash.mjs 확인)\n",
+  );
+  process.exit(2);
+}
 const command = input.tool_input?.command ?? "";
 const cwd = input.cwd ?? process.cwd();
 
