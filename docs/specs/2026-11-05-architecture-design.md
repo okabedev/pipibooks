@@ -170,7 +170,7 @@ POST /v1/shelf {isbn}     core-api → catalog-worker POST /internal/books/impor
 
 ### 7.3 Cloudflare
 - 도메인은 Cloudflare Registrar에서 구매하는 것을 권장한다.
-- 터널은 로컬 설정 방식(`infra/cloudflared/config.yml`을 저장소에서 관리)으로 운영한다. 인증 정보 파일은 저장소 밖에 둔다.
+- 터널은 로컬 설정 방식(`infra/cloudflared/config.yml`을 저장소에서 관리)으로 운영한다. 설정은 `pipibooks-cloudflared` 이미지에 넣고, 인증 정보는 저장소 밖 env 파일의 `TUNNEL_CRED_CONTENTS`로 넘긴다(호스트 바인드 마운트 없음, 이슈 #28).
 - `www`는 루트 도메인으로 리다이렉트한다. `/admin*`은 Cloudflare Access로 보호한다.
 - 무료 WAF 요청 빈도 제한을 `/v1/events`와 `/v1/auth/*`에 건다. `/_next/static`은 엣지에 캐시한다.
 

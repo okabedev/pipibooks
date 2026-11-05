@@ -6,7 +6,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 COMPOSE_FILE="$ROOT/infra/compose/compose.prod.yml"
 ENV_FILE="${ENV_FILE:-$ROOT/infra/compose/.env}"
-CREDENTIALS_FILE="${CREDENTIALS_FILE:-$ROOT/infra/cloudflared/credentials.json}"
+CLOUDFLARED_ENV_FILE="${CLOUDFLARED_ENV_FILE:-$ROOT/infra/env/cloudflared.env}"
 DOCKER_BIN="${DOCKER_BIN:-docker}"
 HEALTH_RETRIES="${HEALTH_RETRIES:-30}"
 SKIP_REV_CHECK="${SKIP_REV_CHECK:-0}"
@@ -26,9 +26,9 @@ if [ "$SKIP_REV_CHECK" != 1 ]; then
   fi
 fi
 
-# 터널 준비 확인: 인증 정보 파일이 없으면 Docker가 그 경로에 빈 디렉토리를 만들어 버린다.
-if [ ! -f "$CREDENTIALS_FILE" ]; then
-  echo "터널 credentials 파일이 없다: $CREDENTIALS_FILE (docs/ops/deploy.md 1장)" >&2
+# 터널 준비 확인: 인증 정보(TUNNEL_CRED_CONTENTS)가 없으면 cloudflared가 뜨지 않는다.
+if [ -z "$(sed -n 's/^TUNNEL_CRED_CONTENTS=//p' "$CLOUDFLARED_ENV_FILE" 2>/dev/null | tail -n 1)" ]; then
+  echo "TUNNEL_CRED_CONTENTS가 없다: $CLOUDFLARED_ENV_FILE (docs/ops/deploy.md 1장)" >&2
   exit 1
 fi
 if [ -z "$(sed -n 's/^TUNNEL_ID=//p' "$ENV_FILE" 2>/dev/null | tail -n 1)" ]; then
@@ -40,7 +40,7 @@ prev="$(sed -n 's/^PIPIBOOKS_VERSION=//p' "$ENV_FILE" 2>/dev/null | tail -n 1)"
 
 compose() { # <X.Y.Z> <args...>
   local v="$1"; shift
-  PIPIBOOKS_VERSION="$v" "$DOCKER_BIN" compose -p "$PROJECT" -f "$COMPOSE_FILE" --env-file "$ENV_FILE" --profile tunnel "$@"
+  CLOUDFLARED_ENV_FILE="$CLOUDFLARED_ENV_FILE" PIPIBOOKS_VERSION="$v" "$DOCKER_BIN" compose -p "$PROJECT" -f "$COMPOSE_FILE" --env-file "$ENV_FILE" --profile tunnel "$@"
 }
 
 check() { # <network> <url>
