@@ -40,6 +40,9 @@
 
 **시크릿 파일** (`~/pipibooks-prod`에서)
 - [ ] `cp infra/env/postgres.env.example infra/env/postgres.env` 후 값을 `openssl rand -base64 32`로 채움
+- [ ] `cp infra/env/core.env.example infra/env/core.env` 후 `DB_PASSWORD`를 `postgres.env`의 `CORE_APP_PASSWORD`와 같은 값으로 채움
+- [ ] `cp infra/env/catalog-worker.env.example infra/env/catalog-worker.env` 후 `DB_PASSWORD`를 `postgres.env`의 `CATALOG_APP_PASSWORD`와 같은 값으로 채움
+- [ ] `cp infra/env/event-collector.env.example infra/env/event-collector.env` 후 `DB_PASSWORD`를 `postgres.env`의 `EVENTS_APP_PASSWORD`와 같은 값으로 채움
 - [ ] `cp infra/compose/.env.example infra/compose/.env` 후 `TUNNEL_ID` 입력(`PIPIBOOKS_VERSION`은 비워 둔다)
 - [ ] 터널 인증 정보: `printf 'TUNNEL_CRED_CONTENTS=%s\n' "$(tr -d '\n' < ~/.cloudflared/<ID>.json)" > infra/env/cloudflared.env && chmod 600 infra/env/cloudflared.env`
   - 파일 바인드 마운트 대신 환경 변수로 넘긴다. Docker Desktop은 재부팅 직후 WSL 파일시스템이 준비되기 전에 컨테이너를 띄우므로, 바인드 마운트가 있으면 기동에 실패하고 재시도하지 않는다(이슈 #28).

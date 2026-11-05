@@ -1,5 +1,6 @@
 package com.pipibooks.catalog
 
+import com.pipibooks.catalog.support.DbTestSupport
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -10,7 +11,7 @@ import org.springframework.test.web.reactive.server.WebTestClient
 @AutoConfigureWebTestClient
 class HealthEndpointTest(
     @Autowired private val client: WebTestClient,
-) {
+) : DbTestSupport() {
     @Test
     fun `헬스 엔드포인트는 UP을 반환한다`() {
         client

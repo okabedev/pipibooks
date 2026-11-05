@@ -9,6 +9,7 @@
 | `compose/compose.dev.yml` | 개발: postgres(`127.0.0.1:5433`), redis(`127.0.0.1:6380`)만 |
 | `compose/.env` | 운영 변수 `PIPIBOOKS_VERSION`(배포된 버전의 단일 기준, `deploy.sh`가 갱신), `TUNNEL_ID` (gitignore) |
 | `env/postgres.env` | DB 비밀번호 (gitignore, 예시: `postgres.env.example`) |
+| `env/{core,catalog-worker,event-collector}.env` | 서비스별 DB(`DB_*`)·Redis(`REDIS_*`) 접속 정보 (gitignore, 예시: `*.env.example`) |
 | `postgres/init/01-init.sh` | 최초 기동 시 계정(`core_app`·`catalog_app`·`events_app`)과 스키마·권한 생성 |
 | `cloudflared/config.yml`, `cloudflared/Dockerfile` | 터널 라우팅. `pipibooks-cloudflared` 이미지에 포함 |
 | `env/cloudflared.env` | 터널 인증 정보 `TUNNEL_CRED_CONTENTS` (gitignore, 예시: `cloudflared.env.example`) |
