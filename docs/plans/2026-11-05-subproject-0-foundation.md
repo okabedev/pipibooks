@@ -403,14 +403,14 @@
   - 헬스체크가 실패하면 이전 버전으로 `up -d`를 다시 실행한다.
 - [ ] **Step 4: 통과 확인** — Run: `pnpm test:scripts` → 모든 assert PASS
 - [ ] **Step 5: 호스트 준비** (사용자가 직접 실행, `sudo` 필요) — `docs/ops/deploy.md`에 체크리스트로 쓰고, 그 순서대로 진행한다.
-  1. Docker Desktop의 이 배포판 WSL 통합을 끄고, WSL 안에 Docker Engine(docker-ce, compose 플러그인)을 설치한다. `sudo systemctl enable --now docker`, `sudo usermod -aG docker okabedev`. (현재는 Docker Desktop이고 `systemd=true`는 이미 설정되어 있음)
-  2. `%UserProfile%\.wslconfig`에 `[wsl2]` 섹션과 `vmIdleTimeout=-1`
-  3. Windows 작업 스케줄러: 시스템 시작 시 `wsl.exe -d <배포판> --exec /bin/true`. 사용자 로그온 여부와 상관없이 실행되도록 설정한다.
+  1. Docker Desktop 설정: "Start Docker Desktop when you sign in" 켜기, 자동 업데이트(Software updates) 끄기, Resource Saver 끄기
+  2. Windows 자동 로그인: Sysinternals Autologon으로 설정한다(비밀번호를 LSA에 암호화해 저장).
+  3. Windows 작업 스케줄러: 로그온 시 `rundll32.exe user32.dll,LockWorkStation`을 실행해 자동 로그인 직후 화면을 잠근다.
   4. 전원 옵션에서 절전을 끄고, 활성 시간(업데이트 재부팅 회피)을 설정한다.
   5. Cloudflare: 도메인 `pipibooks.com` 등록 → `cloudflared tunnel login` → `cloudflared tunnel create pipibooks` → 자격 증명 JSON을 `infra/cloudflared/credentials.json`으로 복사 → `cloudflared tunnel route dns pipibooks pipibooks.com`, `... api.pipibooks.com`
   6. Cloudflare 대시보드: `www`를 루트로 리다이렉트하고, Access 애플리케이션 `pipibooks.com/admin*`을 만든다(운영자 이메일만 허용).
   7. `infra/env/postgres.env`와 `infra/compose/.env`를 만든다. 비밀번호는 `openssl rand -base64 32`로 생성한다.
-  - 검증: `wsl --shutdown`으로 재시작한 뒤 로그인 없이 `docker ps`가 동작하는지 확인한다(다음 Step의 배포 후 재확인).
+  - 검증: 다음 Step의 배포 후 재부팅으로 확인한다.
 - [ ] **Step 6: 릴리스 도구** — `cliff.toml`: Conventional Commits 파서, 그룹(`feat` 기능, `fix` 수정, `perf` 성능, `refactor` 리팩터링, `docs` 문서, 나머지 기타), 태그 패턴 `v[0-9]*`. `git.md`와 `release/SKILL.md`에 릴리스 절차를 적는다.
   1. `release/x.y.z` 브랜치를 만든다.
   2. `git cliff --tag vX.Y.Z -o CHANGELOG.md`(`docker run --rm -v $PWD:/app -w /app orhunp/git-cliff:2.14.2`)
@@ -426,7 +426,7 @@
   - Run: `curl -fsS https://pipibooks.com | grep -o '<h1[^>]*>pipibooks</h1>'` → 일치
   - Run: `curl -fsS https://api.pipibooks.com/actuator/health` → `{"status":"UP"...}`
   - Run: `curl -s -o /dev/null -w '%{http_code}' https://pipibooks.com/admin` → Access 로그인으로 리다이렉트(302) 또는 403
-  - 재부팅 검증: Windows를 재부팅하고 로그인 없이 5분을 기다린 뒤, 다른 기기에서 `https://pipibooks.com`이 열리는지 확인한다.
+  - 재부팅 검증: Windows를 재부팅하고 손대지 않은 채 5분을 기다린다. 화면이 잠겨 있고, 다른 기기에서 `https://pipibooks.com`이 열려야 한다.
 
 ---
 

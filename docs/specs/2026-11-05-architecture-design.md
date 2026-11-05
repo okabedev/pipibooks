@@ -157,9 +157,10 @@ POST /v1/shelf {isbn}     core-api → catalog-worker POST /internal/books/impor
 ## 7. 배포·운영
 
 ### 7.1 호스트
-- WSL2 배포판 안에 Docker 엔진을 직접 설치하고 systemd로 관리한다.
-- 재부팅 후 자동 복구: Windows 작업 스케줄러가 부팅 시 WSL을 기동 → systemd가 Docker 서비스 시작 → compose `restart: unless-stopped`로 컨테이너 복구
-- `.wslconfig`의 `vmIdleTimeout`으로 WSL 유휴 종료를 막는다. Windows 절전을 끄고, 업데이트 재부팅 시각을 새벽으로 지정한다.
+- Docker Desktop(WSL2 백엔드)을 그대로 쓴다(ADR 0007).
+- 재부팅 후 자동 복구: Windows 자동 로그인 → Docker Desktop 로그인 시 자동 시작 → compose `restart: unless-stopped`로 컨테이너 복구. 자동 로그인 직후 작업 스케줄러가 화면을 잠근다.
+- Docker Desktop 자동 업데이트와 Resource Saver를 끈다. 업데이트는 배포처럼 계획된 시각에 수동으로 한다.
+- Windows 절전을 끄고, 업데이트 재부팅 시각을 새벽으로 지정한다.
 
 ### 7.2 컨테이너 (`infra/compose/compose.prod.yml`)
 - 서비스: `cloudflared`, `web`, `core-api`, `event-collector`, `catalog-worker`, `postgres:18`, `redis`(AOF `everysec`), `backup`
@@ -293,5 +294,5 @@ Refs: #<이슈번호>
 ## 13. 구현 전에 확인할 사항
 - **국립중앙도서관 ISBN 서지정보 API**: 제목·저자 검색, 출간일 범위 조회, 표지 URL 제공 여부, 호출 제한. 서브프로젝트 1 계획 전에 확인한다. 기능이 부족하면 이 스펙을 다시 논의한다.
 - **도구 버전**: Spring Boot, Kotlin, Next.js, Expo 등의 최신 안정 버전을 각 계획 단계에서 확인해 고정한다(JDK는 설치된 25 LTS).
-- **Docker 환경**: 현재 Docker가 Docker Desktop인지 WSL 안의 엔진인지 서브프로젝트 0에서 확인한다.
+- **Docker 환경**: Docker Desktop으로 확인됨(2026-11-05). 운영을 별도 머신으로 옮길 때 Docker Engine 전환을 다시 검토한다.
 - **도메인**: `pipibooks.com` 구매 여부. 터널 공개 단계 전까지 필요하다.
