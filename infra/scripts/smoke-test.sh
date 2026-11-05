@@ -8,7 +8,8 @@ cd "$ROOT"
 PROJECT=pipibooks-smoke
 CURL_IMAGE=curlimages/curl:8.23.0
 tmp="$(mktemp -d)"
-export PIPIBOOKS_VERSION=local TUNNEL_ID=smoke POSTGRES_ENV_FILE="$tmp/postgres.env"
+# POSTGRES_PUBLISH: 같은 호스트의 운영 Postgres(127.0.0.1:5432)와 충돌하지 않도록 임의 포트에 바인딩한다.
+export PIPIBOOKS_VERSION=local TUNNEL_ID=smoke POSTGRES_ENV_FILE="$tmp/postgres.env" POSTGRES_PUBLISH=127.0.0.1:
 compose() { docker compose -p "$PROJECT" -f infra/compose/compose.prod.yml "$@"; }
 
 cleanup() { compose down -v --remove-orphans >/dev/null 2>&1 || true; rm -rf "$tmp"; }
