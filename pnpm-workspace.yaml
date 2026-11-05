@@ -1,0 +1,7 @@
+packages:
+  - clients/web
+  - clients/app
+  - clients/packages/*
+
+allowBuilds:
+  lefthook: true
