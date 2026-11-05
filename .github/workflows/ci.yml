@@ -2,8 +2,12 @@ name: CI
 
 on:
   pull_request:
+    # edited: PR 제목을 고치면 pr-title을 다시 검사한다.
+    types: [opened, synchronize, reopened, edited]
   push:
     branches: [develop, main]
+  # 경로와 무관하게 모든 잡을 실행한다.
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -87,7 +91,7 @@ jobs:
 
   services:
     needs: changes
-    if: needs.changes.outputs.services == 'true'
+    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.services == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7.0.1
@@ -101,7 +105,7 @@ jobs:
 
   web:
     needs: changes
-    if: needs.changes.outputs.clients == 'true'
+    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.clients == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7.0.1
@@ -118,7 +122,7 @@ jobs:
 
   infra:
     needs: changes
-    if: needs.changes.outputs.services == 'true' || needs.changes.outputs.clients == 'true' || needs.changes.outputs.infra == 'true'
+    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.services == 'true' || needs.changes.outputs.clients == 'true' || needs.changes.outputs.infra == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7.0.1
