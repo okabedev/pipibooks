@@ -12,7 +12,7 @@
 | `postgres/init/01-init.sh` | 최초 기동 시 계정(`core_app`·`catalog_app`·`events_app`)과 스키마·권한 생성 |
 | `cloudflared/config.yml`, `cloudflared/Dockerfile` | 터널 라우팅. `pipibooks-cloudflared` 이미지에 포함 |
 | `env/cloudflared.env` | 터널 인증 정보 `TUNNEL_CRED_CONTENTS` (gitignore, 예시: `cloudflared.env.example`) |
-| `scripts/build-local.sh` | 네 이미지를 `:local`로 빌드 |
+| `scripts/build-local.sh` | 다섯 이미지(web, core, catalog-worker, event-collector, cloudflared)를 `:local`로 빌드 |
 | `scripts/smoke-test.sh` | 운영 compose를 `:local`로 띄워 헬스·DB 권한 검증 후 정리(Postgres는 임의 포트) |
 | `scripts/deploy.sh` | 운영 배포·자동 롤백. 운영 체크아웃이 배포 태그를 가리켜야 함 |
 

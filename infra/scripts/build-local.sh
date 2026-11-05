@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 네 서비스 이미지를 :local 태그로 빌드한다.
+# 다섯 이미지(서비스 4개 + cloudflared)를 :local 태그로 빌드한다.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 (cd "$ROOT/services" && ./gradlew jibDockerBuild -Pversion=local --console=plain -q)

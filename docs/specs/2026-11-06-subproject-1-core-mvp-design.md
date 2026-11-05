@@ -23,7 +23,7 @@
 | 공개 단계 | 제한 공개 `v0.1.0` → 지인 사용 1~2주 → 일반 공개 `v0.1.x` | 공개 전환 작업이 작고, 실사용 데이터로 피드 가중치를 조정 |
 | 카드 발행 | 기준을 통과한 초안은 자동 발행, 나머지는 관리자 대기열. 검수는 사후 점검으로 | ADR 0011 |
 | 사후 점검 | 최근 자동 발행 목록, 넘김 비율 점검 목록, 일반 공개 시 사용자 신고 | 1인 운영에서 피드가 끊기지 않게 |
-| 서재 범위 | 위시(`WISH`)만. 테이블은 `docs/domain/model.md` 전체 모양으로 생성 | 서브프로젝트별 세션 경계와 로드맵 일치 |
+| 서재 범위 | 위시(`WISH`)만. `shelf_item` 테이블은 `docs/domain/model.md`의 전체 컬럼으로 생성(`reading_log`·`quote`는 서브프로젝트 2) | 서브프로젝트별 세션 경계와 로드맵 일치 |
 | 온보딩 | 첫 로그인 직후 관심 분야 1~3개(건너뛰기 가능) | 첫 피드부터 개인화 |
 | 공유 | `/cards/{id}` 서버 렌더링 + OG 메타, Web Share API·링크 복사 | 일반 공개 후 유입 경로 |
 | 피드 화면 | 세로 9:16 전체 화면, 슬라이드는 좌우, 카드는 상하. 데스크톱은 가운데 9:16 열 | 브레인스토밍에서 선택 |
@@ -117,7 +117,7 @@
 
 **보안·설정**
 - JWT는 ES256. core만 개인키를 갖고, event-collector는 공개키로 검증한다.
-- CORS는 `https://pipibooks.com`만 credentials와 함께 허용한다.
+- CORS는 core와 event-collector 모두 `https://pipibooks.com`만 credentials와 함께 허용한다(collector는 `Authorization` 헤더 허용).
 - 제공자에게서 닉네임·프로필 이미지만 받고 이메일은 받지 않는다.
 - 관리자: 환경 변수 `ADMIN_SOCIAL_ACCOUNTS=KAKAO:<id>,GOOGLE:<id>`에 있는 계정은 로그인 때 `ADMIN`이 된다. `/v1/admin/**`은 `ADMIN` 필요, 웹 `/admin`은 Cloudflare Access로도 막는다.
 - `local` 프로필과 E2E는 WireMock 가짜 OAuth 제공자를 쓴다.
@@ -145,7 +145,7 @@
 - 월별 파티션은 기동 시와 매일 현재 달부터 2개월 뒤까지 만든다.
 - core의 서버 이벤트(`SHELF_ADD`, `IDENTITY_LINK`)도 같은 Stream에 넣는다.
 
-**클라이언트 트래커**(`clients/packages/shared`): 50건 또는 5초마다 전송, 페이지가 숨겨질 때 `sendBeacon`(인증 없이 익명).
+**클라이언트 트래커**(`clients/packages/shared`): 50건 또는 5초마다 `fetch`로 전송, 페이지가 숨겨질 때 `sendBeacon`(인증 없이 익명). `sendBeacon`은 교차 출처에서 preflight를 할 수 없으므로 본문을 `text/plain`으로 보내고, collector는 `/v1/events`에서 `application/json`과 `text/plain`(JSON 본문)을 모두 받는다.
 
 | 이벤트 | 발생 조건 |
 |---|---|
@@ -172,7 +172,7 @@
 - 데스크톱: 가운데 9:16 열, 슬라이드는 화살표 버튼과 ←→, 카드는 휠과 ↑↓.
 - 슬라이드 배경색은 KDC 대분류별로 다르게 한다.
 - 비로그인 사용자가 위시를 누르면 로그인 후 원래 카드로 돌아와 위시 담기를 마저 끝낸다.
-- API 호출은 `clients/packages/api-client`(OpenAPI 생성물)로만 한다. 생성 도구(후보: `openapi-typescript` + `openapi-fetch`)는 ADR을 먼저 쓴다.
+- core API 호출은 `clients/packages/api-client`(OpenAPI 생성물)로만 한다. 이벤트 전송은 `packages/shared`의 트래커가 맡는다. 서버 렌더링(공유 페이지)은 내부 주소(`http://core:8080`, 환경 변수)로 core를 호출한다. 생성 도구(후보: `openapi-typescript` + `openapi-fetch`)는 ADR을 먼저 쓴다.
 - 웹 피드 Task 첫 단계에서 목 데이터로 피드 화면을 확인받은 뒤 API를 연결한다.
 
 **관리자 (`/admin`)**
@@ -209,14 +209,25 @@
 - 회원 탈퇴 `DELETE /v1/me`: soft delete, 닉네임·프로필 익명화, `social_account`·`refresh_token` 삭제, 서버 이벤트 `MEMBER_DELETED` 발행 → event-collector가 해당 회원 이벤트의 `member_id`를 끊는다.
 - 구글 OAuth 앱 게시, 카카오 앱 설정, WAF 값 재점검
 
-## 13. 테스트
+## 13. 데이터 모델 변경 요약
+
+해당 기능 PR에서 Flyway 마이그레이션과 함께 `docs/domain/model.md`·`feed.md`를 갱신한다.
+
+| 스키마 | 변경 |
+|---|---|
+| `catalog` | `book`에 `ea_add_code`·`form`·`ebook_yn`·`set_isbn`·`publish_predate` 추가. `card_draft`에 `auto_publishable`·`blocked_reasons` 추가. `collect_run` 신규 |
+| `core` | `member.onboarded_at`, `refresh_token.family_id`, `card.edited_at` 추가. `card.book_id` UNIQUE. `sync_cursor` 신규. 일반 공개 단계에서 `card_report` 신규 |
+| `events` | 서버 이벤트 `MEMBER_DELETED` 추가(일반 공개 단계). 피드 인기도는 `SHELF_ADD` 이벤트 대신 `core.shelf_item` 생성 시각으로 계산 |
+| Redis | 피드 세션 목록, 노출 집합, 검색 캐시, Stream `events:user`·`events:dead`, 카드 카운터 해시 |
+
+## 14. 테스트
 
 - 백엔드: TDD. Testcontainers(Postgres, Redis), WireMock(국립중앙도서관, OAuth). 국립중앙도서관 응답은 공개 문서 필드로 만든 가짜 응답으로 시작하고, 키를 받으면 실제 응답을 녹화해 교체한다.
 - ArchUnit: core 모듈 경계(공개 서비스 인터페이스만 호출) 규칙을 모듈 추가 때마다 검증한다.
 - 웹: Vitest(컴포넌트·트래커), Playwright E2E(비로그인 피드 → 가짜 OAuth 로그인 → 온보딩 → 위시 담기 → 서재 확인).
 - 컨테이너 스모크 테스트(§10).
 
-## 14. 구현 전에 확인할 사항
+## 15. 구현 전에 확인할 사항
 
 - **국립중앙도서관 키(승인 대기)**: 최대 `page_size`, 실제 호출 제한, 최근 도서의 표지·소개 채움률, 하루 500건 초과 시 처리. 키를 받으면 catalog-worker Task의 첫 단계로 10회 안팎 시험 호출한다. 채움률이 매우 낮으면 자동 발행 기준을 다시 논의한다.
 - **OAuth**: 구글 브랜드 확인 절차와 소요 기간, 카카오 로그인 동의 항목과 테스트 사용자 등록 방법

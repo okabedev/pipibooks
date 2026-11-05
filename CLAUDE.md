@@ -60,6 +60,7 @@
 | 문서 | 언제 읽는가 |
 |---|---|
 | `docs/specs/2026-11-05-architecture-design.md` | 전체 아키텍처·결정의 근거가 필요할 때 |
+| `docs/specs/2026-11-06-subproject-1-core-mvp-design.md` | 서브프로젝트 1(코어 MVP) 기능을 설계·구현할 때 |
 | `docs/plans/` | 진행 중인 서브프로젝트의 Task를 실행할 때 |
 | `docs/architecture/adr/README.md` | 결정의 이유를 확인하거나 새 결정을 기록할 때 |
 | `docs/architecture/overview.md` | 컴포넌트 책임·통신·스키마 소유권을 확인할 때 |
