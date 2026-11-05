@@ -7,7 +7,7 @@
 
 ## 결정
 - 언어는 전 컴포넌트 Kotlin으로 하고, Gradle Kotlin DSL 멀티 프로젝트와 버전 카탈로그를 쓴다. JDK는 25 LTS다.
-- `core-api`: Spring MVC + JPA + 가상 스레드
+- `core`: Spring MVC + JPA + 가상 스레드
 - `catalog-worker`, `event-collector`: Kotlin 코루틴(collector는 WebFlux)
 - DB 변경은 Flyway만 허용한다.
 

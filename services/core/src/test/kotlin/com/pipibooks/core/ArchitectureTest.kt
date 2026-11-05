@@ -8,7 +8,7 @@ import com.tngtech.archunit.library.dependencies.SlicesRuleDefinition.slices
 
 @AnalyzeClasses(packages = ["com.pipibooks.core"], importOptions = [ImportOption.DoNotIncludeTests::class])
 class ArchitectureTest {
-    // core-api 모듈(member, card, feed, library, stats, admin) 사이에 순환 의존이 없어야 한다.
+    // core 모듈(member, card, feed, library, stats, admin) 사이에 순환 의존이 없어야 한다.
     @ArchTest
     val modulesAreFreeOfCycles: ArchRule =
         slices()

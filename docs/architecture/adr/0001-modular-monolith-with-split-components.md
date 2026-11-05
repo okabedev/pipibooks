@@ -6,7 +6,7 @@
 1인이 단일 머신에서 운영한다. 코어는 모놀리스로 두되, 트래픽이나 작업 성격이 다른 부분은 분리해야 한다.
 
 ## 결정
-- `core-api`: 모듈러 모놀리스(`member`, `card`, `feed`, `library`, `stats`, `admin`)
+- `core`: 모듈러 모놀리스(`member`, `card`, `feed`, `library`, `stats`, `admin`)
 - `catalog-worker`: 국립중앙도서관 API 수집, 카드 초안 생성. 외부 API 호출 제한과 장시간 배치를 격리한다.
 - `event-collector`: 행동 이벤트 수집. 요청 빈도가 높은 트래픽을 격리한다.
 - PostgreSQL 하나를 공유하되, 스키마(`core`/`catalog`/`events`)별로 쓰기 소유자를 하나만 둔다. DB 계정 권한으로 강제한다.

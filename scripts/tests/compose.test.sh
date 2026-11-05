@@ -22,7 +22,7 @@ binds_of() {
   ' "$tmp/config.json" "$1"
 }
 assert_pass "운영 compose 렌더링 성공" test -s "$tmp/config.json"
-for s in cloudflared web core-api event-collector catalog-worker redis; do
+for s in cloudflared web core event-collector catalog-worker redis; do
   assert_pass "$s: 호스트 바인드 마운트 없음" test -z "$(binds_of "$s")"
 done
 assert_pass "postgres: 바인드는 init 디렉토리뿐" test "$(binds_of postgres)" = "/docker-entrypoint-initdb.d"

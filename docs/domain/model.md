@@ -6,7 +6,7 @@
 - `book`: `isbn13`(UNIQUE), 제목, 저자, 출판사, 출간일, KDC, 쪽수, 표지 URL, 소개, 목차, `fetched_at`. ISBN이 없는 도서는 수집하지 않는다.
 - `card_draft`: `book_id`, 슬라이드 묶음(jsonb), 생성기 이름·버전, 생성 시각
 
-## core (core-api 소유)
+## core (core 모듈 소유)
 - `member`: 닉네임, 프로필 이미지, 역할(`USER`/`ADMIN`), 상태, `deleted_at`
 - `social_account`: `member_id`, 제공자(`KAKAO`/`GOOGLE`/`APPLE`), 제공자 사용자 ID. (제공자, 사용자 ID) UNIQUE
 - `refresh_token`: `member_id`, 토큰 해시, 기기 정보, `expires_at`, `revoked_at`

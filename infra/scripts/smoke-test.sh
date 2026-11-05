@@ -36,7 +36,7 @@ health() { # <name> <network> <url>
     ok "health $1"
   else fail "health $1 ($3)"; fi
 }
-health core-api internal http://core-api:8080/actuator/health
+health core internal http://core:8080/actuator/health
 health catalog-worker internal http://catalog-worker:8082/actuator/health
 health event-collector internal http://event-collector:8081/actuator/health
 health web edge http://web:3000/healthz

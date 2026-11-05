@@ -6,7 +6,7 @@
 
 | 경로 | 내용 |
 |---|---|
-| `services/` | Gradle 멀티 프로젝트: `core-api`, `catalog-worker`, `event-collector`, `libs/` |
+| `services/` | Gradle 멀티 프로젝트: `core`, `catalog-worker`, `event-collector`, `libs/` |
 | `clients/` | pnpm 워크스페이스: `web/`(Next.js), `app/`(Expo), `packages/` |
 | `infra/` | compose, cloudflared, Postgres 초기화, 배포 스크립트, env 예시 |
 | `docs/` | 스펙, 계획, ADR, 참조 문서 |
@@ -36,7 +36,7 @@
 
 - 커밋·PR 제목: `<type>(<scope>): <한국어 제목>` — 제목 50자 이내, 마침표 없음, scope 필수
 - type: `feat` `fix` `docs` `style` `refactor` `perf` `test` `build` `ci` `chore` `revert`
-- scope: `core-api` `catalog-worker` `event-collector` `libs` `web` `app` `shared` `infra` `docs` `repo`
+- scope: `core` `catalog-worker` `event-collector` `libs` `web` `app` `shared` `infra` `docs` `repo`
 - 본문에 무엇을·왜를 쓰고, 푸터에 `Refs: #<이슈번호>`
 - 브랜치: `feature/<번호>-<slug>`, `release/x.y.z`, `hotfix/x.y.z`
 - PR 제목이 squash 커밋 메시지가 되므로 PR 제목도 같은 규칙을 따른다

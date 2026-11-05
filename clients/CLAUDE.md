@@ -7,7 +7,7 @@
 |---|---|---|
 | `web/` | Next.js 16(App Router, `src/`, Tailwind 4), 웹과 `/admin` | 골격(임시 랜딩) |
 | `app/` | Expo(React Native) 앱 | 서브프로젝트 3에서 생성 |
-| `packages/api-client/` | core-api OpenAPI에서 생성한 TS 클라이언트 | 서브프로젝트 1 |
+| `packages/api-client/` | core OpenAPI에서 생성한 TS 클라이언트 | 서브프로젝트 1 |
 | `packages/shared/` | 슬라이드 타입 스키마, 도메인 상수 | 서브프로젝트 1 |
 
 - 워크스페이스 정의와 빌드 스크립트 허용 목록(`allowBuilds`)은 루트 `pnpm-workspace.yaml`에만 둔다. 하위에 `pnpm-workspace.yaml`을 만들지 않는다.

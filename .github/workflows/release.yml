@@ -33,7 +33,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: 같은 버전 이미지 덮어쓰기 방지
         run: |
-          for s in web core-api catalog-worker event-collector cloudflared; do
+          for s in web core catalog-worker event-collector cloudflared; do
             if docker manifest inspect "ghcr.io/okabedev/pipibooks-$s:$VERSION" >/dev/null 2>&1; then
               echo "이미 존재: pipibooks-$s:$VERSION. 버전 태그는 불변이다(새 버전으로 릴리스)."; exit 1
             fi
