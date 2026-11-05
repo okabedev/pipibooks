@@ -1,7 +1,7 @@
 # 서브프로젝트 1: 코어 MVP 설계
 
 - 작성일: 2026-11-06
-- 상태: 검토 대기
+- 상태: 승인 (2026-11-06)
 - 관련 ADR: 0004, 0005(일부 대체), 0006, 0008, 0011(신규: 카드 자동 발행)
 - 상위 스펙: `docs/specs/2026-11-05-architecture-design.md` §12 서브프로젝트 1
 - 이슈: #32
@@ -65,7 +65,7 @@
 - `POST /internal/books/import {isbn}`: 이미 `book`에 있으면 외부 호출 없이 `bookId`를 반환하고, 없을 때만 국립중앙도서관에서 조회해 upsert한다
 - `POST /internal/collect-runs {type, isbns|keyword}`: 운영자 시드·수동 실행
 
-**카드 초안**: 소개가 있는 도서에 `RuleBasedCardDraftGenerator` v1을 적용해 `catalog.card_draft`를 만든다.
+**카드 초안**: 소개가 있는 도서에 `RuleBasedCardDraftGenerator` v1을 적용해 `catalog.card_draft`를 만든다. 신간 수집은 같은 책을 최대 14번 다시 받으므로, 초안은 도서가 새로 생겼을 때, 카드에 쓰는 필드(제목·저자·소개·목차·KDC·표지 등)가 바뀌었을 때, 생성기 버전이 올랐을 때만 만든다. 표지 URL 확인 요청도 URL이 새로 생기거나 바뀌었을 때만 한다.
 
 | 슬라이드 | 내용 |
 |---|---|
@@ -215,7 +215,7 @@
 
 ## 13. 데이터 모델 변경 요약
 
-해당 기능 PR에서 Flyway 마이그레이션과 함께 `docs/domain/model.md`·`feed.md`를 갱신한다.
+해당 기능 PR에서 Flyway 마이그레이션과 함께 `docs/domain/model.md`·`feed.md`를 갱신한다. `core`의 `card.book_id`·`shelf_item.book_id`는 `catalog.book`을 ID로만 참조하고 외래 키를 걸지 않는다(`core_app`은 catalog에 `SELECT`만 있어 `REFERENCES` 권한이 없고, 스키마 소유권을 섞지 않기 위해서다).
 
 | 스키마 | 변경 |
 |---|---|
