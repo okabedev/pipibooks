@@ -6,17 +6,17 @@
 운영 호스트는 이 Windows PC(WSL2 + Docker Desktop)다.
 
 **Docker Desktop**
-- [x] Settings → General: "Start Docker Desktop when you sign in" 켜기
-- [x] Settings → Software updates: 자동 확인·다운로드 끄기(업데이트는 계획된 시각에 수동으로)
-- [x] Settings → Resources: Resource Saver 끄기
+- [ ] Settings → General: "Start Docker Desktop when you sign in" 켜기
+- [ ] Settings → Software updates: 자동 확인·다운로드 끄기(업데이트는 계획된 시각에 수동으로)
+- [ ] Settings → Resources: Resource Saver 끄기
 
 **Windows**
-- [x] 자동 로그인: Sysinternals Autologon으로 설정(비밀번호는 LSA에 암호화 저장)
+- [ ] 자동 로그인: Sysinternals Autologon으로 설정(비밀번호는 LSA에 암호화 저장)
 - [ ] 자동 로그인 직후 화면 잠금: 작업 스케줄러 → 작업 만들기 → 트리거 "로그온할 때" → 동작 `rundll32.exe user32.dll,LockWorkStation`
-- [x] 전원: 절전 "안 함", 활성 시간(업데이트 재부팅 회피) 설정, 업데이트 재부팅은 새벽
+- [ ] 전원: 절전 "안 함", 활성 시간(업데이트 재부팅 회피) 설정, 업데이트 재부팅은 새벽
 
 **Cloudflare**
-- [x] 도메인 `pipibooks.com` 등록(Cloudflare Registrar 권장)
+- [ ] 도메인 `pipibooks.com` 등록(Cloudflare Registrar 권장)
 - [ ] `cloudflared` 설치 후 로그인: `docker run --rm -it -v ~/.cloudflared:/home/nonroot/.cloudflared cloudflare/cloudflared:2026.10.7 tunnel login`
 - [ ] 터널 생성: `... tunnel create pipibooks` → 출력된 터널 ID와 `~/.cloudflared/<ID>.json` 확인
 - [ ] 인증 정보 복사: `cp ~/.cloudflared/<ID>.json infra/cloudflared/credentials.json` (gitignore 대상)
