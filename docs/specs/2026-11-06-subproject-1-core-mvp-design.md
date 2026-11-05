@@ -51,12 +51,12 @@
 **클라이언트**: 코루틴 `WebClient`. 초당 호출 수(기본 1)와 `page_size`(기본 50)는 설정값. 호출 한도는 하나를 공유하되, 사용자 요청(검색·import)이 배치 수집보다 먼저 한도를 얻는다(배치는 대기 중인 사용자 요청이 있으면 양보). `000`·5xx·타임아웃은 지수 백오프로 3회 재시도, `010`·`011`은 즉시 실패와 오류 로그.
 
 **수집 경로**
-- 신간: 매일 새벽 발행예정일 최근 14일을 하루 단위로 나눠 조회한다. 구간이 겹치므로 실패한 날짜는 다음 실행에서 다시 수집된다(상위 스펙의 재처리 큐를 이것으로 갈음). 하루 결과가 500건을 넘으면 경고 로그를 남긴다.
+- 신간: 매일 04:00 KST에 발행예정일 최근 14일을 하루 단위로 나눠 조회한다. 구간이 겹치므로 실패한 날짜는 다음 실행에서 다시 수집된다(상위 스펙의 재처리 큐를 이것으로 갈음). 하루 결과가 500건을 넘으면 경고 로그를 남긴다.
 - 운영자 시드: 관리자가 ISBN 목록 또는 키워드로 요청한다.
 - 사용자 유입: `POST /internal/books/import {isbn}`로 동기 upsert한다.
 - 실행 이력은 `catalog.collect_run`(종류, 구간·검색어, 상태, 조회·저장·초안 건수, 시작·종료 시각)에 남긴다. 끝나면 Healthchecks.io 하트비트를 보낸다.
 
-**정규화**: ISBN13 검증숫자 확인(실패 시 버림), 표지 URL https 변환(없으면 `null`), 저자 역할어("지음", "옮김" 등) 정리, 발행예정일을 `date`로 변환.
+**정규화**: ISBN13 검증숫자 확인(실패 시 버림), 표지 URL https 변환 후 한 번 요청해 `200`과 `image/*`가 아니면 `null`(깨진 표지가 자동 발행되지 않게), 저자 역할어("지음", "옮김" 등) 정리, 발행예정일을 `date`로 변환.
 
 **`catalog.book` 추가 컬럼**: `ea_add_code`, `form`, `ebook_yn`, `set_isbn`, `publish_predate`. `docs/domain/model.md`를 같은 PR에서 갱신한다.
 
@@ -109,7 +109,7 @@
 
 **로그인 흐름(웹)**
 1. 브라우저가 `state`(CSRF)와 함께 제공자 인가 화면으로 이동한다. 돌아올 주소는 `https://pipibooks.com/auth/callback/{provider}`.
-2. 콜백 페이지가 `{code, redirectUri, anonymousId}`를 `POST /v1/auth/{provider}`로 보낸다.
+2. 콜백 페이지가 `state`를 확인한 뒤 `{code, redirectUri, anonymousId}`를 `POST /v1/auth/{provider}`로 보낸다. core는 `redirectUri`가 설정된 허용 목록과 정확히 같을 때만 코드를 교환한다.
 3. core가 코드를 교환하고(클라이언트 시크릿은 서버만 보유) `social_account`로 회원을 찾거나 만든다.
 4. Access JWT(15분)는 응답 본문, Refresh 토큰은 쿠키 `pb_rt`(`Domain=.pipibooks.com`, `Path=/v1/auth`, `HttpOnly`·`Secure`·`SameSite=Lax`).
 5. `POST /v1/auth/refresh`는 토큰을 교체한다. 이미 쓴 토큰이 오면 같은 계열(`family_id`)의 토큰을 모두 폐기한다. `POST /v1/auth/logout`은 현재 토큰을 폐기한다.
@@ -117,7 +117,7 @@
 
 **보안·설정**
 - JWT는 ES256. core만 개인키를 갖고, event-collector는 공개키로 검증한다.
-- CORS는 core와 event-collector 모두 `https://pipibooks.com`만 credentials와 함께 허용한다(collector는 `Authorization` 헤더 허용).
+- CORS는 core와 event-collector 모두 `https://pipibooks.com`만 credentials와 함께 허용한다(허용 헤더: core는 `Authorization`·`X-Anonymous-Id`, collector는 `Authorization`).
 - 제공자에게서 닉네임·프로필 이미지만 받고 이메일은 받지 않는다.
 - 관리자: 환경 변수 `ADMIN_SOCIAL_ACCOUNTS=KAKAO:<id>,GOOGLE:<id>`에 있는 계정은 로그인 때 `ADMIN`, 목록에서 빠진 계정은 다음 로그인 때 `USER`가 된다(역할은 로그인마다 이 값과 맞춘다). `/v1/admin/**`은 `ADMIN` 필요, 웹 `/admin`은 Cloudflare Access로도 막는다.
 - `local` 프로필과 E2E는 WireMock 가짜 OAuth 제공자를 쓴다.
@@ -139,11 +139,11 @@
 
 ## 8. 이벤트 수집 (event-collector)
 
-- `POST /v1/events`(최대 50건): `{anonymousId, sessionId, platform, appVersion, events:[{type, cardId, bookId, slideIndex, dwellMs, occurredAt}]}`. 유효한 `Authorization`이 있으면 `member_id`를 붙이고, 무효해도 거부하지 않고 익명으로 처리한다.
+- `POST /v1/events`(최대 50건): `{anonymousId, sessionId, platform, appVersion, events:[{eventId, type, cardId, bookId, slideIndex, dwellMs, occurredAt}]}`. `eventId`는 클라이언트가 만든 UUID다. `occurredAt`이 수신 시각 기준 7일 전~5분 후 범위를 벗어나면 수신 시각으로 바꾼다(없는 파티션으로 INSERT가 실패하지 않게). 유효한 `Authorization`이 있으면 `member_id`를 붙이고, 무효해도 거부하지 않고 익명으로 처리한다.
 - `libs/event-schema`로 검증 후 Stream `events:user`에 `XADD`(근사 MAXLEN 100,000, 약 30MB)하고 `202`.
-- 컨슈머 그룹: 500건 또는 1초 단위로 `events.user_event`에 배치 INSERT, 카드 카운터 갱신, ACK. 60초 이상 멈춘 메시지는 `XAUTOCLAIM`, 3회 실패하면 `events:dead`로 옮긴다.
+- 컨슈머 그룹: 500건 또는 1초 단위로 `events.user_event`에 배치 INSERT(`(event_id, occurred_at)` UNIQUE, `ON CONFLICT DO NOTHING`으로 재전송·중복 무시), 카드 카운터·본 카드 집합 갱신, ACK. 배치 INSERT가 실패하면 건별로 다시 넣어 문제 메시지만 골라낸다. 60초 이상 멈춘 메시지는 `XAUTOCLAIM`, 3회 실패한 메시지는 `events:dead`로 옮긴다. 재전송 시 Redis 카운터가 두 번 오를 수 있는 오차는 허용한다.
 - 월별 파티션은 기동 시와 매일 현재 달부터 2개월 뒤까지 만든다.
-- core의 서버 이벤트(`SHELF_ADD`, `IDENTITY_LINK`)도 같은 Stream에 넣는다.
+- core의 서버 이벤트(`SHELF_ADD`, `IDENTITY_LINK`)도 같은 Stream에 넣는다(`eventId`는 core가 만든다).
 
 **클라이언트 트래커**(`clients/packages/shared`): 50건 또는 5초마다 `fetch`로 전송, 페이지가 숨겨질 때 `sendBeacon`(인증 없이 익명). `sendBeacon`은 교차 출처에서 preflight를 할 수 없으므로 본문을 `text/plain`으로 보내고, collector는 `/v1/events`에서 `application/json`과 `text/plain`(JSON 본문)을 모두 받는다.
 
@@ -171,6 +171,8 @@
 
 - 데스크톱: 가운데 9:16 열, 슬라이드는 화살표 버튼과 ←→, 카드는 휠과 ↑↓.
 - 슬라이드 배경색은 KDC 대분류별로 다르게 한다.
+- 카드의 `INFO` 슬라이드와 공유 페이지에 "자료: 국립중앙도서관" 출처를 표시한다.
+- 표지는 국립중앙도서관 주소에서 직접 불러온다(Next.js `images.remotePatterns`에 해당 호스트 등록).
 - 비로그인 사용자가 위시를 누르면 로그인 후 원래 카드로 돌아와 위시 담기를 마저 끝낸다.
 - Refresh 쿠키는 `api.pipibooks.com/v1/auth`에만 전송되므로 웹 서버는 로그인 상태를 알 수 없다. 로그인이 필요한 화면(`/shelf`, `/me`, `/onboarding`, `/admin`)은 클라이언트에서 토큰을 확인하고 이동시킨다. 서버 렌더링은 공개 화면(`/cards/[id]`)에만 쓴다.
 - core API 호출은 `clients/packages/api-client`(OpenAPI 생성물)로만 한다. 이벤트 전송은 `packages/shared`의 트래커가 맡는다. 서버 렌더링(공유 페이지)은 내부 주소(`http://core:8080`, 환경 변수)로 core를 호출한다. 생성 도구(후보: `openapi-typescript` + `openapi-fetch`)는 ADR을 먼저 쓴다.
@@ -185,10 +187,10 @@
 
 ## 10. 운영
 
-- **백업**: `backup` 컨테이너가 매일 `pg_dump -Fc` → age 암호화 → 로컬 볼륨과 Cloudflare R2. 보관 일간 7·주간 4·월간 6. 성공 시 Healthchecks.io 하트비트. `deploy.sh`의 마이그레이션 전 백업 TODO를 채운다. `infra/scripts/restore-rehearsal.sh`로 월 1회 임시 컨테이너 복원 리허설. 절차는 `docs/ops/backup.md`.
+- **백업**: `backup` 컨테이너가 매일 03:00 KST(수집보다 먼저) `pg_dump -Fc` → age 암호화 → 로컬 볼륨과 Cloudflare R2. 호스트에는 age **공개키**만 두고, 복호화용 개인키는 저장소·호스트 밖(비밀번호 관리자)에 보관한다. 보관 일간 7·주간 4·월간 6. 성공 시 Healthchecks.io 하트비트. `deploy.sh`의 마이그레이션 전 백업 TODO를 채운다. `infra/scripts/restore-rehearsal.sh`로 월 1회 임시 컨테이너 복원 리허설. 절차는 `docs/ops/backup.md`.
 - **외부 모니터링**: UptimeRobot(무료)으로 `https://pipibooks.com/healthz`, `https://api.pipibooks.com/actuator/health`를 5분 간격 확인. 백업·수집은 Healthchecks.io 하트비트.
 - **WAF**: Cloudflare 무료 요청 빈도 제한 규칙 1개에 `/v1/auth/*`와 `/v1/events`를 묶는다. 값은 일반 공개 전에 실제 트래픽으로 조정한다. 설정값과 절차는 `docs/ops/`에 둔다.
-- **시크릿 추가**: 국립중앙도서관 키, 카카오·구글 클라이언트 시크릿, JWT ES256 키 쌍, `ADMIN_SOCIAL_ACCOUNTS`, R2 키, age 키, Healthchecks.io URL. `infra/env/*.env.example`에 항목을 추가한다.
+- **시크릿 추가**: 국립중앙도서관 키, 카카오·구글 클라이언트 시크릿, JWT ES256 키 쌍, `ADMIN_SOCIAL_ACCOUNTS`, OAuth 허용 `redirectUri`, R2 키, age 공개키, Healthchecks.io URL. `infra/env/*.env.example`에 항목을 추가한다.
 - **Redis 메모리**: 컨테이너 한도가 256MB이므로 `maxmemory 200mb`, `maxmemory-policy volatile-lru`로 설정한다. TTL이 있는 캐시·집합만 밀려나고 TTL이 없는 Stream은 지워지지 않는다. 캐시 키에는 반드시 TTL을 단다.
 - **스모크 테스트**: `smoke-test.sh`에 피드 조회와 이벤트 전송(202)을 추가한다.
 
@@ -219,7 +221,7 @@
 |---|---|
 | `catalog` | `book`에 `ea_add_code`·`form`·`ebook_yn`·`set_isbn`·`publish_predate` 추가. `card_draft`에 `auto_publishable`·`blocked_reasons` 추가. `collect_run` 신규 |
 | `core` | `member.onboarded_at`, `refresh_token.family_id`, `card.edited_at` 추가. `card.book_id` UNIQUE. `sync_cursor` 신규. 일반 공개 단계에서 `card_report` 신규 |
-| `events` | 서버 이벤트 `MEMBER_DELETED` 추가(일반 공개 단계). 피드 인기도는 `SHELF_ADD` 이벤트 대신 `core.shelf_item` 생성 시각으로 계산 |
+| `events` | `user_event`에 `event_id`(클라이언트 UUID) 추가, `(event_id, occurred_at)` UNIQUE. 서버 이벤트 `MEMBER_DELETED` 추가(일반 공개 단계). 피드 인기도는 `SHELF_ADD` 이벤트 대신 `core.shelf_item` 생성 시각으로 계산 |
 | Redis | 피드 세션 목록(core), 본 카드 집합·카드 카운터(event-collector), 검색 캐시(core), Stream `events:user`·`events:dead` |
 
 ## 14. 테스트
@@ -234,4 +236,6 @@
 - **국립중앙도서관 키(승인 대기)**: 최대 `page_size`, 실제 호출 제한, 최근 도서의 표지·소개 채움률, 하루 500건 초과 시 처리. 키를 받으면 catalog-worker Task의 첫 단계로 10회 안팎 시험 호출한다. 채움률이 매우 낮으면 자동 발행 기준을 다시 논의한다.
 - **OAuth**: 구글 브랜드 확인 절차와 소요 기간, 카카오 로그인 동의 항목과 테스트 사용자 등록 방법
 - **사용자가 만들 계정**: Cloudflare R2 버킷·키, Healthchecks.io, UptimeRobot
+- **WebFlux 컴포넌트의 DB 접근 방식(미결정)**: catalog-worker·event-collector에는 아직 DB 의존성이 없다. 권장안은 Spring Data R2DBC(`DatabaseClient`)와, 기동 시 마이그레이션에만 JDBC를 쓰는 Flyway다. 컨벤션에 없는 선택이므로 공통 기반 Task에서 ADR(0012)로 먼저 결정한다.
+- **시간대**: 저장은 UTC, 스케줄과 발행예정일 해석은 `Asia/Seoul`로 한다. 각 서비스 설정에 명시한다.
 - **도구 버전**: Flyway, Testcontainers, WireMock, JWT 라이브러리, OpenAPI 생성 도구의 최신 안정 버전을 계획 단계에서 고정한다.
