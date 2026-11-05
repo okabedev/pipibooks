@@ -112,7 +112,7 @@
 2. 콜백 페이지가 `state`를 확인한 뒤 `{code, redirectUri, anonymousId}`를 `POST /v1/auth/{provider}`로 보낸다. core는 `redirectUri`가 설정된 허용 목록과 정확히 같을 때만 코드를 교환한다.
 3. core가 코드를 교환하고(클라이언트 시크릿은 서버만 보유) `social_account`로 회원을 찾거나 만든다.
 4. Access JWT(15분)는 응답 본문, Refresh 토큰은 쿠키 `pb_rt`(`Domain=.pipibooks.com`, `Path=/v1/auth`, `HttpOnly`·`Secure`·`SameSite=Lax`).
-5. `POST /v1/auth/refresh`는 토큰을 교체한다. 이미 쓴 토큰이 오면 같은 계열(`family_id`)의 토큰을 모두 폐기한다. `POST /v1/auth/logout`은 현재 토큰을 폐기한다.
+5. `POST /v1/auth/refresh`는 토큰을 교체한다. 이미 쓴 토큰이 오면 같은 계열(`family_id`)의 토큰을 모두 폐기한다. 단, 교체된 지 30초 이내의 토큰은 재사용으로 보지 않고 같은 계열의 새 토큰을 발급한다(여러 탭이 동시에 재발급할 때 로그아웃되지 않게). `POST /v1/auth/logout`은 현재 토큰을 폐기한다.
 6. 로그인 시 `IDENTITY_LINK` 이벤트를 보낸다.
 
 **보안·설정**
