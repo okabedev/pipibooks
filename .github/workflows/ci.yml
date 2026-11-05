@@ -1,0 +1,148 @@
+name: CI
+
+on:
+  pull_request:
+    # edited: PR 제목을 고치면 pr-title을 다시 검사한다.
+    types: [opened, synchronize, reopened, edited]
+  push:
+    branches: [develop, main]
+  # 경로와 무관하게 모든 잡을 실행한다.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      services: ${{ steps.filter.outputs.services }}
+      clients: ${{ steps.filter.outputs.clients }}
+      infra: ${{ steps.filter.outputs.infra }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - id: filter
+        uses: dorny/paths-filter@v4.0.3
+        with:
+          filters: |
+            services:
+              - 'services/**'
+            clients:
+              - 'clients/**'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+            infra:
+              - 'infra/**'
+
+  pr-title:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      # squash 머지 시 PR 제목이 커밋 메시지가 되므로 커밋 규칙으로 검사한다.
+      - uses: amannn/action-semantic-pull-request@v6.1.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            fix
+            docs
+            style
+            refactor
+            perf
+            test
+            build
+            ci
+            chore
+            revert
+          scopes: |
+            core-api
+            catalog-worker
+            event-collector
+            libs
+            web
+            app
+            shared
+            infra
+            docs
+            repo
+          requireScope: true
+          subjectPattern: ^(?!.*\.$).{1,50}( \(#\d+\))?$
+          subjectPatternError: "제목은 50자 이내, 마침표 없이 작성한다: {subject}"
+
+  scripts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: pnpm/action-setup@v6.1.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test:scripts
+      - run: pnpm check:docs
+
+  services:
+    needs: changes
+    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.services == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-java@v6.2.0
+        with:
+          distribution: temurin
+          java-version: "25"
+      - uses: gradle/actions/setup-gradle@v6.4.1
+      - run: ./gradlew build --console=plain
+        working-directory: services
+
+  web:
+    needs: changes
+    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.clients == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: pnpm/action-setup@v6.1.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter web lint
+      - run: pnpm --filter web test
+      - run: pnpm --filter web exec playwright install --with-deps chromium
+      - run: pnpm --filter web test:e2e
+
+  infra:
+    needs: changes
+    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.services == 'true' || needs.changes.outputs.clients == 'true' || needs.changes.outputs.infra == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-java@v6.2.0
+        with:
+          distribution: temurin
+          java-version: "25"
+      - uses: gradle/actions/setup-gradle@v6.4.1
+      - run: bash infra/scripts/build-local.sh
+      - run: bash infra/scripts/smoke-test.sh
+
+  ci-ok:
+    if: always()
+    needs: [changes, pr-title, scripts, services, web, infra]
+    runs-on: ubuntu-latest
+    steps:
+      # 경로 필터로 건너뛴(skipped) 잡은 통과로 본다. 실패·취소만 막는다.
+      - name: 결과 확인
+        run: |
+          echo '${{ toJSON(needs) }}'
+          if ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}; then
+            echo "실패하거나 취소된 잡이 있습니다"; exit 1
+          fi
