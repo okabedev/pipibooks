@@ -6,7 +6,7 @@ set -euo pipefail
 REPO="${REPO:-okabedev/pipibooks}"
 
 TYPES=(feat fix docs style refactor perf test build ci chore revert)
-SCOPES=(core-api catalog-worker event-collector libs web app shared infra docs repo)
+SCOPES=(core catalog-worker event-collector libs web app shared infra docs repo)
 MILESTONES=("0 기반" "1 코어 MVP" "2 독서 기록·통계" "3 모바일 앱" "4 본격 추천")
 M0_ISSUES=(
   "루트 도구 체인과 커밋·브랜치·문서 검사"

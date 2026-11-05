@@ -19,7 +19,7 @@
 
 | 항목 | 결정 | ADR |
 |---|---|---|
-| 아키텍처 | 모듈러 모놀리스(core-api)와 분리 컴포넌트 2개(catalog-worker, event-collector), 공유 Postgres(스키마별 소유권) | 0001 |
+| 아키텍처 | 모듈러 모놀리스(core)와 분리 컴포넌트 2개(catalog-worker, event-collector), 공유 Postgres(스키마별 소유권) | 0001 |
 | 백엔드 | 코어: Kotlin + Spring MVC + JPA(가상 스레드). 분리 컴포넌트: Kotlin + 코루틴 | 0002 |
 | 클라이언트 | Next.js(웹)와 Expo(앱), pnpm 워크스페이스 공유 패키지 | 0003 |
 | 인증 | 카카오·구글 소셜 로그인(앱 출시 때 Apple 추가), 자체 JWT | 0004 |
@@ -36,32 +36,32 @@
 Cloudflare (DNS, WAF, Access) ── Tunnel ── cloudflared (컨테이너, 유일한 진입점)
   pipibooks.com                  → web (Next.js)            :3000
   api.pipibooks.com ^/v1/events  → event-collector          :8081
-  api.pipibooks.com              → core-api                 :8080
+  api.pipibooks.com              → core                     :8080
   그 외                           → 404
 
-core-api ──(HTTP, 내부망)── catalog-worker ── 국립중앙도서관 API
+core ──(HTTP, 내부망)── catalog-worker ── 국립중앙도서관 API
    │  └──(XADD)──┐                │
    │        Redis (캐시 / 피드 캐시 / Streams)
    │             └──(XREADGROUP, 배치)── event-collector
-PostgreSQL: core(core-api) / catalog(catalog-worker) / events(event-collector)
+PostgreSQL: core(core 모듈) / catalog(catalog-worker) / events(event-collector)
 ```
 
 | 컴포넌트 | 책임 | 분리 이유 |
 |---|---|---|
-| core-api | 회원·인증, 카드 조회·발행, 피드, 서재, 통계, 관리자 API | - (코어 모놀리스) |
+| core | 회원·인증, 카드 조회·발행, 피드, 서재, 통계, 관리자 API | - (코어 모놀리스) |
 | catalog-worker | 국립중앙도서관 API 수집, ISBN 동기 import(내부 API), 카드 초안 생성 | 외부 API 호출 제한·재시도·장시간 배치가 API 응답 지연에 영향을 주지 않게 |
 | event-collector | 행동 이벤트 수신, Redis Streams 버퍼링, `events`에 배치 적재 | 요청 빈도가 코어 API보다 훨씬 높음 |
 | web | 웹 클라이언트, `/admin` 관리자 화면 | - |
 
-core-api 내부 모듈은 `member`, `card`, `feed`, `library`, `stats`, `admin`이다. 모듈끼리는 서로의 공개 서비스 인터페이스만 호출하며, 이 규칙은 ArchUnit으로 검증한다.
+core 내부 모듈은 `member`, `card`, `feed`, `library`, `stats`, `admin`이다. 모듈끼리는 서로의 공개 서비스 인터페이스만 호출하며, 이 규칙은 ArchUnit으로 검증한다.
 
 ## 4. 도메인·데이터 모델
 
 ### 4.1 스키마 소유권
 | 스키마 | 쓰기 | 읽기 | DB 계정 |
 |---|---|---|---|
-| `catalog` | catalog-worker | core-api | `catalog_app`(catalog 쓰기), `core_app`(catalog 읽기) |
-| `core` | core-api | - | `core_app` |
+| `catalog` | catalog-worker | core | `catalog_app`(catalog 쓰기), `core_app`(catalog 읽기) |
+| `core` | core | - | `core_app` |
 | `events` | event-collector | (나중에) 추천 워커 | `events_app` |
 
 Flyway 마이그레이션은 스키마별로 위치를 나누고, 소유 컴포넌트만 실행한다.
@@ -85,7 +85,7 @@ Flyway 마이그레이션은 스키마별로 위치를 나누고, 소유 컴포�
 **events** (`occurred_at` 기준 월별 파티션)
 - `user_event`: `member_id`(없을 수 있음), `anonymous_id`, `session_id`, `type`, `card_id`, `book_id`, `slide_index`, `dwell_ms`, `platform`, `app_version`, `occurred_at`, `received_at`
 - 클라이언트가 보내는 이벤트: `CARD_IMPRESSION`, `SLIDE_VIEW`, `CARD_DWELL`, `CARD_SKIP`, `CARD_SHARE`
-- 서버(core-api)가 보내는 이벤트: `SHELF_ADD`, `STATUS_CHANGE`, `IDENTITY_LINK`(로그인 시 `anonymous_id`와 회원을 연결)
+- 서버(core)가 보내는 이벤트: `SHELF_ADD`, `STATUS_CHANGE`, `IDENTITY_LINK`(로그인 시 `anonymous_id`와 회원을 연결)
 - 이벤트 페이로드와 Stream 키는 `services/libs/event-schema`에서 한 곳에 정의한다.
 
 ### 4.3 공통 규칙
@@ -97,7 +97,7 @@ Flyway 마이그레이션은 스키마별로 위치를 나누고, 소유 컴포�
 
 ### 5.1 로그인
 1. 클라이언트가 OAuth 인가 코드를 받아 `POST /v1/auth/{provider}`로 보낸다.
-2. core-api가 제공자에게 사용자 정보를 확인하고, 회원을 찾거나 새로 만든다.
+2. core가 제공자에게 사용자 정보를 확인하고, 회원을 찾거나 새로 만든다.
 3. Access 토큰(15분, JWT)과 Refresh 토큰(30일, 불투명 토큰이며 DB에는 해시만 저장)을 발급한다.
    - 웹은 Refresh 토큰을 `HttpOnly`, `Secure`, `SameSite=Lax` 쿠키로 받는다(도메인 `.pipibooks.com`).
    - 앱은 응답 본문으로 받아 SecureStore에 저장한다.
@@ -115,7 +115,7 @@ Flyway 마이그레이션은 스키마별로 위치를 나누고, 소유 컴포�
 - 소개글이 없는 도서는 카드 후보에서 제외한다. `QUOTE` 슬라이드는 큐레이션 전용이다.
 
 **발행**
-- 관리자가 `/admin`에서 초안을 검수·편집하고 발행한다. 발행하면 core-api가 초안을 `core.card`와 `core.card_slide`로 복사한다.
+- 관리자가 `/admin`에서 초안을 검수·편집하고 발행한다. 발행하면 core가 초안을 `core.card`와 `core.card_slide`로 복사한다.
 
 **외부 API 호출 규칙**
 - 호출 제한을 지키고, 지수 백오프로 재시도한다. 실패한 항목은 재처리 큐에 넣는다.
@@ -123,8 +123,8 @@ Flyway 마이그레이션은 스키마별로 위치를 나누고, 소유 컴포�
 
 ### 5.3 도서 검색과 서재 추가
 ```
-GET  /v1/books/search?q=  core-api → catalog-worker 내부 API /internal/books/search (Redis 캐시 10분)
-POST /v1/shelf {isbn}     core-api → catalog-worker POST /internal/books/import (동기, upsert)
+GET  /v1/books/search?q=  core → catalog-worker 내부 API /internal/books/search (Redis 캐시 10분)
+POST /v1/shelf {isbn}     core → catalog-worker POST /internal/books/import (동기, upsert)
                           → book_id 반환 → shelf_item 생성 → SHELF_ADD 이벤트 발행
 ```
 - 국립중앙도서관 API 호출은 **catalog-worker만** 한다.
@@ -152,7 +152,7 @@ POST /v1/shelf {isbn}     core-api → catalog-worker POST /internal/books/impor
 - 경로에 버전을 넣는다(`/v1/...`). 응답은 JSON이고, 필드는 camelCase로 쓴다.
 - 에러는 RFC 9457 Problem Details 형식에 `code` 필드(예: `SHELF_ITEM_NOT_FOUND`)를 더한다.
 - 목록은 커서 페이지네이션(`cursor`, `size`, `nextCursor`)을 쓴다.
-- core-api는 springdoc으로 OpenAPI를 생성하고, `clients/packages/api-client`가 이 명세에서 TS 클라이언트를 생성한다. CI는 생성물이 최신인지 검사한다.
+- core는 springdoc으로 OpenAPI를 생성하고, `clients/packages/api-client`가 이 명세에서 TS 클라이언트를 생성한다. CI는 생성물이 최신인지 검사한다.
 
 ## 7. 배포·운영
 
@@ -163,7 +163,7 @@ POST /v1/shelf {isbn}     core-api → catalog-worker POST /internal/books/impor
 - Windows 절전을 끄고, 업데이트 재부팅 시각을 새벽으로 지정한다.
 
 ### 7.2 컨테이너 (`infra/compose/compose.prod.yml`)
-- 서비스: `cloudflared`, `web`, `core-api`, `event-collector`, `catalog-worker`, `postgres:18`, `redis`(AOF `everysec`), `backup`
+- 서비스: `cloudflared`, `web`, `core`, `event-collector`, `catalog-worker`, `postgres:18`, `redis`(AOF `everysec`), `backup`
 - 네트워크는 `edge`(cloudflared와 공개 서비스)와 `internal`(DB, Redis, worker)로 나눈다. 호스트 포트는 열지 않는다. Postgres 관리 접속만 `127.0.0.1`에 바인딩한다.
 - 컨테이너마다 `mem_limit`을 걸고, JVM에는 `-XX:MaxRAMPercentage`를 설정한다. 로그는 `json-file` 드라이버로 로테이션한다.
 - 개발용 `compose.dev.yml`은 Postgres와 Redis만 띄운다.
@@ -198,7 +198,7 @@ docs/  architecture/(overview.md, adr/)  domain/(model.md, feed.md)
        conventions/(git.md, api.md)  ops/(deploy.md, backup.md)  specs/  plans/
 scripts/  check-docs.sh
 services/  build-logic/  gradle/libs.versions.toml
-           core-api/  catalog-worker/  event-collector/  libs/(common/, event-schema/)
+           core/  catalog-worker/  event-collector/  libs/(common/, event-schema/)
 clients/   web/  app/  packages/(api-client/, shared/)
 infra/     compose/  cloudflared/  postgres/init/  backup/  scripts/  env/
 ```
@@ -262,7 +262,7 @@ infra/     compose/  cloudflared/  postgres/init/  backup/  scripts/  env/
 Refs: #<이슈번호>
 ```
 - **type**: `feat` `fix` `docs` `style` `refactor` `perf` `test` `build` `ci` `chore` `revert`
-- **scope**: `core-api` `catalog-worker` `event-collector` `libs` `web` `app` `shared` `infra` `docs` `repo`
+- **scope**: `core` `catalog-worker` `event-collector` `libs` `web` `app` `shared` `infra` `docs` `repo`
 - 호환성이 깨지는 변경은 `BREAKING CHANGE:` 푸터로 표시한다.
 
 ## 11. 테스트 전략

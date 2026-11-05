@@ -35,7 +35,7 @@
 Refs: #<이슈번호>
 ```
 - type: `feat` `fix` `docs` `style` `refactor` `perf` `test` `build` `ci` `chore` `revert`
-- scope(필수): `core-api` `catalog-worker` `event-collector` `libs` `web` `app` `shared` `infra` `docs` `repo`
+- scope(필수): `core` `catalog-worker` `event-collector` `libs` `web` `app` `shared` `infra` `docs` `repo`
 - 제목 50자 이내, 마침표 없음, "~ 추가"·"~ 수정" 같은 명사형
 - 호환성을 깨는 변경은 `BREAKING CHANGE:` 푸터
 - squash 머지 시 PR 제목이 커밋 제목이 된다. PR 제목도 같은 규칙(CI가 검사).

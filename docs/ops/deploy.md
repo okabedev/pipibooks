@@ -53,7 +53,7 @@ bash infra/scripts/deploy.sh vX.Y.Z
 1. 체크아웃이 `vX.Y.Z` 태그인지 확인 — 아니면 아무것도 바꾸지 않고 종료
 2. 이미지 pull — 실패하면 아무것도 바꾸지 않고 종료
 3. (서브프로젝트 1부터) DB 백업
-4. `compose --profile tunnel up -d` 후 헬스체크(core-api, catalog-worker, event-collector, web)
+4. `compose --profile tunnel up -d` 후 헬스체크(core, catalog-worker, event-collector, web)
 5. 성공하면 `infra/compose/.env`의 `PIPIBOOKS_VERSION`을 갱신한다. 이 값이 배포된 버전의 단일 기준이다.
 6. up 또는 헬스체크가 실패하면 기록된 이전 버전으로 다시 기동하고 헬스체크한다. 결과는 `롤백 완료` / `ROLLBACK FAILED` / `롤백할 이전 버전이 없습니다` 중 하나로 출력하고 exit 1
 

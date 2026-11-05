@@ -49,7 +49,7 @@ check() { # <network> <url>
 }
 
 healthy() {
-  check internal http://core-api:8080/actuator/health &&
+  check internal http://core:8080/actuator/health &&
     check internal http://catalog-worker:8082/actuator/health &&
     check internal http://event-collector:8081/actuator/health &&
     check edge http://web:3000/healthz

@@ -8,5 +8,5 @@ ingress:
     path: ^/v1/events
     service: http://event-collector:8081
   - hostname: api.pipibooks.com
-    service: http://core-api:8080
+    service: http://core:8080
   - service: http_status:404

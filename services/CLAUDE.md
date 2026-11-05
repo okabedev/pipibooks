@@ -5,7 +5,7 @@
 ## 모듈
 | 모듈 | 패키지 | 포트 | 실행 모델 |
 |---|---|---|---|
-| `core-api` | `com.pipibooks.core` | 8080 | Spring MVC + 가상 스레드 (JPA는 서브프로젝트 1부터) |
+| `core` | `com.pipibooks.core` | 8080 | Spring MVC + 가상 스레드 (JPA는 서브프로젝트 1부터) |
 | `event-collector` | `com.pipibooks.event` | 8081 | WebFlux + 코루틴 |
 | `catalog-worker` | `com.pipibooks.catalog` | 8082 | WebFlux + 코루틴 (내부 API만) |
 | `libs/*` | `com.pipibooks.<lib>` | - | 공유 라이브러리(서브프로젝트 1에서 추가) |
@@ -18,8 +18,8 @@
 - `io.spring.dependency-management` 플러그인은 쓰지 않는다(ktlint·detekt의 Kotlin 버전을 덮어씀).
 
 ## 코드 규칙
-- core-api 내부 모듈(`member`, `card`, `feed`, `library`, `stats`, `admin`)은 `com.pipibooks.core.<module>` 패키지. 다른 모듈은 공개 서비스 인터페이스로만 호출한다. `ArchitectureTest`가 순환 의존을 막는다.
-- 블로킹 코드는 core-api에서만. WebFlux 모듈에서는 `suspend` 함수와 코루틴을 쓴다.
+- core 내부 모듈(`member`, `card`, `feed`, `library`, `stats`, `admin`)은 `com.pipibooks.core.<module>` 패키지. 다른 모듈은 공개 서비스 인터페이스로만 호출한다. `ArchitectureTest`가 순환 의존을 막는다.
+- 블로킹 코드는 core에서만. WebFlux 모듈에서는 `suspend` 함수와 코루틴을 쓴다.
 - 설정은 `application.yml`. 시크릿은 환경 변수로 받는다(값을 커밋하지 않는다).
 - 로그는 구조화 로그(`logging.structured.format.console: ecs`). Actuator는 `health`만 노출한다.
 - 표준 예시 코드(새 기능이 따를 구조)는 서브프로젝트 1의 위시리스트 구현에서 지정한다.
@@ -36,5 +36,5 @@
 | `./gradlew build` | 컴파일 + 테스트 + ktlint + detekt |
 | `./gradlew test` | 테스트만 |
 | `./gradlew ktlintFormat` | Kotlin 포맷 자동 수정 |
-| `./gradlew :core-api:bootRun` | 로컬 실행 |
+| `./gradlew :core:bootRun` | 로컬 실행 |
 | `./gradlew jibDockerBuild -Pversion=local` | 로컬 Docker 이미지 빌드 |

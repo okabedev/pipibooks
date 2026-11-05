@@ -17,9 +17,9 @@ services:
     mem_limit: 384m
     networks: [edge]
 
-  core-api:
+  core:
     <<: *defaults
-    image: ghcr.io/okabedev/pipibooks-core-api:${PIPIBOOKS_VERSION:?PIPIBOOKS_VERSION 필요}
+    image: ghcr.io/okabedev/pipibooks-core:${PIPIBOOKS_VERSION:?PIPIBOOKS_VERSION 필요}
     mem_limit: 768m
     networks: [edge, internal]
 

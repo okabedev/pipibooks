@@ -13,7 +13,7 @@ export const types = [
   "revert",
 ];
 export const scopes = [
-  "core-api",
+  "core",
   "catalog-worker",
   "event-collector",
   "libs",

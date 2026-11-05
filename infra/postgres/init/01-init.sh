@@ -30,7 +30,7 @@ ALTER ROLE core_app SET search_path = core;
 ALTER ROLE catalog_app SET search_path = catalog;
 ALTER ROLE events_app SET search_path = events;
 
--- core-api는 catalog를 읽기만 한다.
+-- core는 catalog를 읽기만 한다.
 GRANT USAGE ON SCHEMA catalog TO core_app;
 ALTER DEFAULT PRIVILEGES FOR ROLE catalog_app IN SCHEMA catalog GRANT SELECT ON TABLES TO core_app;
 SQL

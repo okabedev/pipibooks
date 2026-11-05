@@ -69,7 +69,7 @@ jobs:
             chore
             revert
           scopes: |
-            core-api
+            core
             catalog-worker
             event-collector
             libs
