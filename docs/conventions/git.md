@@ -21,6 +21,11 @@
 4. `gh pr create --base develop` — 제목은 커밋 규칙, 본문은 PR 템플릿과 `Closes #<번호>`
 5. CI(`ci-ok`) 통과 후 `gh pr merge --squash`
 
+## CI (`.github/workflows/ci.yml`)
+- 잡: `pr-title`(PR 제목 규칙), `scripts`(스크립트 테스트·문서 검사, 항상), `services`·`web`·`infra`(경로가 바뀐 경우만), `ci-ok`(집계)
+- 룰셋의 필수 상태 검사는 `ci-ok` 하나다. 경로 필터로 건너뛴 잡은 통과로 본다.
+- 새 잡을 추가하면 `ci-ok`의 `needs`에도 추가한다.
+
 ## 커밋 메시지 (Conventional Commits)
 ```
 <type>(<scope>): <한국어 제목>

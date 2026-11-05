@@ -19,7 +19,7 @@ M0_ISSUES=(
   "호스트 준비, 배포 스크립트, v0.0.1 공개"
 )
 # 룰셋 필수 상태 검사. 비어 있으면 상태 검사 규칙을 넣지 않는다.
-REQUIRED_CHECKS=()
+REQUIRED_CHECKS=("ci-ok")
 
 log() { printf '%s\n' "$*"; }
 
