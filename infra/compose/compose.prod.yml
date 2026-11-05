@@ -21,18 +21,21 @@ services:
     <<: *defaults
     image: ghcr.io/okabedev/pipibooks-core:${PIPIBOOKS_VERSION:?PIPIBOOKS_VERSION 필요}
     mem_limit: 768m
+    env_file: ${CORE_ENV_FILE:-../env/core.env}
     networks: [edge, internal]
 
   event-collector:
     <<: *defaults
     image: ghcr.io/okabedev/pipibooks-event-collector:${PIPIBOOKS_VERSION:?PIPIBOOKS_VERSION 필요}
     mem_limit: 768m
+    env_file: ${EVENT_COLLECTOR_ENV_FILE:-../env/event-collector.env}
     networks: [edge, internal]
 
   catalog-worker:
     <<: *defaults
     image: ghcr.io/okabedev/pipibooks-catalog-worker:${PIPIBOOKS_VERSION:?PIPIBOOKS_VERSION 필요}
     mem_limit: 768m
+    env_file: ${CATALOG_WORKER_ENV_FILE:-../env/catalog-worker.env}
     networks: [internal]
 
   postgres:
@@ -58,7 +61,17 @@ services:
     image: redis:8.10.3-alpine
     mem_limit: 256m
     command:
-      ["redis-server", "--appendonly", "yes", "--appendfsync", "everysec"]
+      [
+        "redis-server",
+        "--appendonly",
+        "yes",
+        "--appendfsync",
+        "everysec",
+        "--maxmemory",
+        "200mb",
+        "--maxmemory-policy",
+        "volatile-lru",
+      ]
     volumes:
       - redisdata:/data
     networks: [internal]

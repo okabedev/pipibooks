@@ -10,19 +10,30 @@ CURL_IMAGE=curlimages/curl:8.23.0
 tmp="$(mktemp -d)"
 # POSTGRES_PUBLISH: 같은 호스트의 운영 Postgres(127.0.0.1:5432)와 충돌하지 않도록 임의 포트에 바인딩한다.
 export PIPIBOOKS_VERSION=local TUNNEL_ID=smoke POSTGRES_ENV_FILE="$tmp/postgres.env" POSTGRES_PUBLISH=127.0.0.1: CLOUDFLARED_ENV_FILE="$tmp/cloudflared.env"
+export CORE_ENV_FILE="$tmp/core.env" CATALOG_WORKER_ENV_FILE="$tmp/catalog-worker.env" EVENT_COLLECTOR_ENV_FILE="$tmp/event-collector.env"
 compose() { docker compose -p "$PROJECT" -f infra/compose/compose.prod.yml "$@"; }
 
 cleanup() { compose down -v --remove-orphans >/dev/null 2>&1 || true; rm -rf "$tmp"; }
 trap cleanup EXIT
 
 pw() { openssl rand -hex 16; }
+core_pw="$(pw)"; catalog_pw="$(pw)"; events_pw="$(pw)"
 cat > "$POSTGRES_ENV_FILE" <<ENV
 POSTGRES_DB=pipibooks
 POSTGRES_PASSWORD=$(pw)
-CORE_APP_PASSWORD=$(pw)
-CATALOG_APP_PASSWORD=$(pw)
-EVENTS_APP_PASSWORD=$(pw)
+CORE_APP_PASSWORD=$core_pw
+CATALOG_APP_PASSWORD=$catalog_pw
+EVENTS_APP_PASSWORD=$events_pw
 ENV
+
+# 서비스별 접속 정보. Flyway가 기동 시 자기 스키마에 접속하지 못하면 헬스가 UP이 되지 않는다.
+svc_env() { # <파일> <계정> <비밀번호> [redis]
+  printf 'DB_HOST=postgres\nDB_PORT=5432\nDB_NAME=pipibooks\nDB_USER=%s\nDB_PASSWORD=%s\n' "$2" "$3" > "$1"
+  if [ "${4:-}" = redis ]; then printf 'REDIS_HOST=redis\nREDIS_PORT=6379\n' >> "$1"; fi
+}
+svc_env "$CORE_ENV_FILE" core_app "$core_pw" redis
+svc_env "$CATALOG_WORKER_ENV_FILE" catalog_app "$catalog_pw"
+svc_env "$EVENT_COLLECTOR_ENV_FILE" events_app "$events_pw" redis
 
 printf 'TUNNEL_CRED_CONTENTS={}\n' > "$CLOUDFLARED_ENV_FILE"
 

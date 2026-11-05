@@ -6,8 +6,10 @@ cd "$REPO_ROOT"
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
 printf 'POSTGRES_DB=x\n' > "$tmp/postgres.env"
 printf 'TUNNEL_CRED_CONTENTS={}\n' > "$tmp/cloudflared.env"
+for s in core catalog-worker event-collector; do : > "$tmp/$s.env"; done
 render() {
   PIPIBOOKS_VERSION=0.0.0 TUNNEL_ID=t POSTGRES_ENV_FILE="$tmp/postgres.env" CLOUDFLARED_ENV_FILE="$tmp/cloudflared.env" \
+    CORE_ENV_FILE="$tmp/core.env" CATALOG_WORKER_ENV_FILE="$tmp/catalog-worker.env" EVENT_COLLECTOR_ENV_FILE="$tmp/event-collector.env" \
     docker compose -f infra/compose/compose.prod.yml --profile tunnel config --format json 2>/dev/null
 }
 render > "$tmp/config.json"
