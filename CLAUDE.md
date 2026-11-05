@@ -63,6 +63,8 @@
 | `docs/domain/feed.md` | 피드 점수·이벤트 수집을 다룰 때 |
 | `docs/conventions/git.md` | 브랜치·커밋·PR·릴리스 절차가 필요할 때 |
 | `docs/conventions/api.md` | REST API를 추가·변경할 때 |
+| `.claude/skills/start-feature/` | 새 작업을 시작할 때(스킬 `start-feature`) |
+| `.claude/skills/release/` | 릴리스할 때(스킬 `release`) |
 
 ## 문서 규칙
 
@@ -73,7 +75,7 @@
 ## 금지 사항
 
 - `main`·`develop`에 직접 커밋·푸시
-- `--no-verify` 등 훅 우회, 강제 푸시
+- `--no-verify` 등 훅 우회, 강제 푸시 (`.claude/hooks/guard-bash.mjs`가 차단)
 - 시크릿(`*.env`, 인증 정보 JSON)을 저장소에 커밋
 - 다른 컴포넌트가 소유한 DB 스키마에 쓰기
 - Flyway 마이그레이션 없이 DB 스키마 변경
