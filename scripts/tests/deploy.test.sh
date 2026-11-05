@@ -28,14 +28,14 @@ chmod +x "$tmp/docker"
 setup() {
   : > "$tmp/log"; echo 0.0.1 > "$tmp/current"
   printf 'PIPIBOOKS_VERSION=0.0.1\nTUNNEL_ID=abc\n' > "$tmp/env"
-  echo '{}' > "$tmp/creds.json"
+  echo 'TUNNEL_CRED_CONTENTS={"TunnelID":"abc"}' > "$tmp/cloudflared.env"
 }
 # d [VAR=값...] <인자> : 가짜 docker로 deploy.sh를 실행하고 출력은 $tmp/out에 남긴다.
 d() {
   local vars=()
   while [[ "${1:-}" == *=* ]]; do vars+=("$1"); shift; done
   env DOCKER_BIN="$tmp/docker" FAKE_LOG="$tmp/log" FAKE_CURRENT="$tmp/current" ENV_FILE="$tmp/env" \
-    CREDENTIALS_FILE="$tmp/creds.json" SKIP_REV_CHECK=1 HEALTH_RETRIES=1 "${vars[@]}" bash "$DEPLOY" "$@" > "$tmp/out" 2>&1
+    CLOUDFLARED_ENV_FILE="$tmp/cloudflared.env" SKIP_REV_CHECK=1 HEALTH_RETRIES=1 "${vars[@]}" bash "$DEPLOY" "$@" > "$tmp/out" 2>&1
 }
 code() { local rc=0; d "$@" || rc=$?; echo "$rc"; }
 version_is() { grep -qx "PIPIBOOKS_VERSION=$1" "$tmp/env"; }
@@ -85,11 +85,14 @@ assert_fail "체크아웃이 태그와 다르면 실패" d SKIP_REV_CHECK=0 v9.9
 assert_pass "리비전 불일치 시 pull 안 함" no_pull
 assert_pass "리비전 불일치를 알림" said "v9.9.8"
 
-# 터널 인증 정보가 없으면 시작하지 않는다(Docker가 빈 디렉토리를 만드는 것 방지).
-setup; rm "$tmp/creds.json"
-assert_fail "인증 정보 파일이 없으면 실패" d v0.0.2
+# 터널 인증 정보(infra/env/cloudflared.env의 TUNNEL_CRED_CONTENTS)가 없으면 시작하지 않는다.
+setup; rm "$tmp/cloudflared.env"
+assert_fail "인증 정보 env 파일이 없으면 실패" d v0.0.2
 assert_pass "인증 정보가 없으면 pull 안 함" no_pull
-assert_pass "인증 정보 누락을 알림" said "credentials"
+assert_pass "인증 정보 누락을 알림" said "TUNNEL_CRED_CONTENTS"
+setup; echo 'TUNNEL_CRED_CONTENTS=' > "$tmp/cloudflared.env"
+assert_fail "인증 정보 값이 비어 있으면 실패" d v0.0.2
+assert_pass "빈 인증 정보면 pull 안 함" no_pull
 setup; printf 'PIPIBOOKS_VERSION=0.0.1\nTUNNEL_ID=\n' > "$tmp/env"
 assert_fail "TUNNEL_ID가 비어 있으면 실패" d v0.0.2
 assert_pass "TUNNEL_ID가 없으면 pull 안 함" no_pull

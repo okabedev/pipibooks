@@ -65,9 +65,12 @@ services:
 
   cloudflared:
     <<: *defaults
-    image: cloudflare/cloudflared:2026.10.7
+    # config.yml이 들어 있는 자체 이미지. 호스트 파일을 마운트하지 않는다(재부팅 직후 기동 실패 방지).
+    image: ghcr.io/okabedev/pipibooks-cloudflared:${PIPIBOOKS_VERSION:?PIPIBOOKS_VERSION 필요}
     profiles: [tunnel]
     mem_limit: 128m
+    # TUNNEL_CRED_CONTENTS: 터널 인증 정보 JSON(infra/env/cloudflared.env, gitignore)
+    env_file: ${CLOUDFLARED_ENV_FILE:-../env/cloudflared.env}
     command:
       [
         "tunnel",
@@ -77,15 +80,6 @@ services:
         "run",
         "${TUNNEL_ID:?TUNNEL_ID 필요}",
       ]
-    volumes:
-      - ../cloudflared/config.yml:/etc/cloudflared/config.yml:ro
-      # 인증 정보 파일이 없으면 디렉토리를 만들지 않고 기동을 실패시킨다.
-      - type: bind
-        source: ../cloudflared/credentials.json
-        target: /etc/cloudflared/credentials.json
-        read_only: true
-        bind:
-          create_host_path: false
     networks: [edge]
 
 networks:

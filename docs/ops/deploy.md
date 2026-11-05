@@ -19,21 +19,30 @@
 - [ ] 도메인 `pipibooks.com` 등록(Cloudflare Registrar 권장)
 - [ ] `cloudflared` 설치 후 로그인: `docker run --rm -it -v ~/.cloudflared:/home/nonroot/.cloudflared cloudflare/cloudflared:2026.10.7 tunnel login`
 - [ ] 터널 생성: `... tunnel create pipibooks` → 출력된 터널 ID와 `~/.cloudflared/<ID>.json` 확인
-- [ ] 인증 정보 복사: `cp ~/.cloudflared/<ID>.json infra/cloudflared/credentials.json` (gitignore 대상)
 - [ ] DNS 연결: `... tunnel route dns pipibooks pipibooks.com`, `... tunnel route dns pipibooks api.pipibooks.com`
-- [ ] 대시보드: `www.pipibooks.com` → `https://pipibooks.com` 리다이렉트 규칙
-- [ ] 대시보드 Zero Trust → Access: 애플리케이션 `pipibooks.com/admin*`, 정책은 운영자 이메일만 허용
+- [ ] `www` 리다이렉트 (터널과 무관)
+  1. DNS → Records → Add record: Type `CNAME`, Name `www`, Target `pipibooks.com`, **Proxied**. 레코드가 없으면 요청이 Cloudflare에 오지 않아 규칙이 실행되지 않는다.
+  2. Rules → Redirect Rules(또는 템플릿 "Redirect from WWW to root"): 조건 `Hostname equals www.pipibooks.com`, Type **Dynamic**, Expression `concat("https://pipibooks.com", http.request.uri.path)`, 상태 `301`, Preserve query string 체크
+  3. 확인: `curl -sI "https://www.pipibooks.com/books/1?x=1"` → `301`, `location: https://pipibooks.com/books/1?x=1`
+- [ ] Access로 `/admin` 보호 (DNS 연결 후)
+  1. Zero Trust(one.dash.cloudflare.com) 최초 진입 시 팀 이름 지정, Free 플랜 선택
+  2. 로그인 방식은 기본값 **Cloudflare identity provider**(Cloudflare 계정 로그인)를 쓴다. 설정 위치: Zero Trust → Integrations → Identity providers
+  3. Access → Applications → Add an application → **Self-hosted**: 이름 `pipibooks admin`, 세션 24시간, Public hostname `pipibooks.com`, Path `admin*`
+  4. 정책: Action **Allow**, Include → **Emails** = Cloudflare 계정 로그인 이메일
+  5. 확인: `curl -s -o /dev/null -w '%{http_code} %{redirect_url}' https://pipibooks.com/admin` → `302 https://<팀>.cloudflareaccess.com/...`. 브라우저로 로그인해 통과하는지도 확인
 
 **GHCR**
 - [ ] 이미지가 로그인 없이 pull 되는지 확인: `docker logout ghcr.io; docker pull ghcr.io/okabedev/pipibooks-web:<버전>`. 패키지는 Public 저장소의 공개 범위를 이어받는다(v0.0.1에서 확인). 실패하면 GitHub → Packages에서 Public으로 바꾼다.
 
 **운영 체크아웃** (개발 작업 트리와 분리)
 - [ ] `git -C ~/projects/pipibooks worktree add ~/pipibooks-prod v0.0.1` — 운영은 항상 이 디렉토리에서 배포 태그를 체크아웃해 실행한다. compose 파일·터널 설정·init 스크립트가 이미지와 같은 리비전이어야 하기 때문이다.
-- 이후 시크릿 파일과 `credentials.json`은 `~/pipibooks-prod` 아래에 둔다.
+- 이후 시크릿 파일은 모두 `~/pipibooks-prod` 아래에 둔다(git 추적 제외).
 
 **시크릿 파일** (`~/pipibooks-prod`에서)
 - [ ] `cp infra/env/postgres.env.example infra/env/postgres.env` 후 값을 `openssl rand -base64 32`로 채움
 - [ ] `cp infra/compose/.env.example infra/compose/.env` 후 `TUNNEL_ID` 입력(`PIPIBOOKS_VERSION`은 비워 둔다)
+- [ ] 터널 인증 정보: `printf 'TUNNEL_CRED_CONTENTS=%s\n' "$(tr -d '\n' < ~/.cloudflared/<ID>.json)" > infra/env/cloudflared.env && chmod 600 infra/env/cloudflared.env`
+  - 파일 바인드 마운트 대신 환경 변수로 넘긴다. Docker Desktop은 재부팅 직후 WSL 파일시스템이 준비되기 전에 컨테이너를 띄우므로, 바인드 마운트가 있으면 기동에 실패하고 재시도하지 않는다(이슈 #28).
 
 ## 2. 배포
 ```bash
@@ -54,7 +63,8 @@ bash infra/scripts/deploy.sh vX.Y.Z
 - `curl -fsS https://pipibooks.com | grep -o '<h1[^>]*>pipibooks</h1>'`
 - `curl -fsS https://api.pipibooks.com/actuator/health`
 - `curl -s -o /dev/null -w '%{http_code}' https://pipibooks.com/admin` → 302 또는 403(Access)
-- 재부팅 검증: Windows 재부팅 후 손대지 않고 5분 → 화면 잠김 상태에서 다른 기기로 `https://pipibooks.com` 접속
+- `curl -sI https://www.pipibooks.com` → `301`
+- 재부팅 검증: Windows 재부팅 후 손대지 않고 5분 → 화면 잠김 상태에서 다른 기기로 `https://pipibooks.com` 접속. `docker ps -a`에 `Exited` 컨테이너가 없어야 한다.
 
 ## 4. 운영 명령
 | 명령 | 용도 |
@@ -62,3 +72,4 @@ bash infra/scripts/deploy.sh vX.Y.Z
 | `docker compose -p pipibooks -f infra/compose/compose.prod.yml --profile tunnel ps` | 상태 |
 | `docker compose -p pipibooks -f infra/compose/compose.prod.yml logs -f --tail 100 <서비스>` | 로그 |
 | `grep PIPIBOOKS_VERSION infra/compose/.env` | 배포된 버전 |
+| `docker start <컨테이너>` | 재부팅 후 `Exited`로 남은 컨테이너 수동 복구 |
