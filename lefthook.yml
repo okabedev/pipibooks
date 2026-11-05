@@ -9,6 +9,8 @@ commit-msg:
 pre-push:
   commands:
     branch-name:
+      # 로컬 조기 경고용. lefthook은 푸시할 파일 변경이 없는 푸시(태그만, 같은 커밋을 다른 이름으로)는
+      # 건너뛴다(skip_empty로도 막을 수 없음). 강제는 CI의 branch-name 검사가 한다.
       use_stdin: true
       run: bash scripts/check-branch-name.sh --pre-push
 

@@ -11,7 +11,7 @@
 | `release/x.y.z` | `develop` | `main`, 이후 `develop` | merge commit, 태그 `vX.Y.Z` |
 | `hotfix/x.y.z` | `main` | `main`, 이후 `develop` | merge commit, 태그 |
 
-- slug는 소문자·숫자·하이픈. `scripts/check-branch-name.sh`(pre-push)가 검사한다.
+- slug는 소문자·숫자·하이픈. `scripts/check-branch-name.sh`가 pre-push(로컬, 변경 파일이 있는 푸시만)와 CI `branch-name` 잡(PR 브랜치, 강제)에서 검사한다.
 - `main`·`develop`은 룰셋 `protect-main-develop`으로 보호한다: 삭제·강제 푸시 금지, PR 필수.
 
 ## 작업 흐름
@@ -22,7 +22,7 @@
 5. CI(`ci-ok`) 통과 후 `gh pr merge --squash`
 
 ## CI (`.github/workflows/ci.yml`)
-- 잡: `pr-title`(PR 제목 규칙), `scripts`(스크립트 테스트·문서 검사, 항상), `services`·`web`·`infra`(경로가 바뀐 경우만), `ci-ok`(집계)
+- 잡: `pr-title`(PR 제목 규칙), `branch-name`(PR 브랜치 이름), `scripts`(스크립트 테스트·문서 검사, 항상), `services`·`web`·`infra`(경로가 바뀐 경우만), `ci-ok`(집계)
 - 룰셋의 필수 상태 검사는 `ci-ok` 하나다. 경로 필터로 건너뛴 잡은 통과로 본다.
 - 새 잡을 추가하면 `ci-ok`의 `needs`에도 추가한다.
 

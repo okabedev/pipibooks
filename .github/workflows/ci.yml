@@ -85,6 +85,16 @@ jobs:
           subjectPattern: ^(?!.*\.$).{1,50}$
           subjectPatternError: "제목은 50자 이내, 마침표 없이 작성한다: {subject}"
 
+  branch-name:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # PR 브랜치 이름을 Git Flow 규칙으로 검사한다(로컬 pre-push 훅을 건너뛴 경우의 최종 방어선).
+      - run: bash scripts/check-branch-name.sh "$HEAD_REF"
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+
   scripts:
     runs-on: ubuntu-latest
     steps:
@@ -146,7 +156,7 @@ jobs:
 
   ci-ok:
     if: always()
-    needs: [changes, pr-title, scripts, services, web, infra]
+    needs: [changes, pr-title, branch-name, scripts, services, web, infra]
     runs-on: ubuntu-latest
     steps:
       # 경로 필터로 건너뛴(skipped) 잡은 통과로 본다. 실패·취소만 막는다.
