@@ -491,4 +491,23 @@
 
 | Task | 이슈 | 브랜치 |
 |---|---|---|
-| 1~20 | (계획 승인 후 생성) | |
+| 1 | #35 | `feature/35-common-foundation` |
+| 2 | #36 | `feature/36-nlk-collection` |
+| 3 | #37 | `feature/37-card-draft-autopublish` |
+| 4 | #38 | `feature/38-card-sync-query` |
+| 5 | #39 | `feature/39-anonymous-feed` |
+| 6 | #40 | `feature/40-client-packages` |
+| 7 | #41 | `feature/41-feed-share-page` |
+| 8 | #42 | `feature/42-social-login` |
+| 9 | #43 | `feature/43-login-onboarding` |
+| 10 | #44 | `feature/44-search-wish` |
+| 11 | #45 | `feature/45-search-wish-ui` |
+| 12 | #46 | `feature/46-event-collection` |
+| 13 | #47 | `feature/47-tracker-share` |
+| 14 | #48 | `feature/48-admin-api` |
+| 15 | #49 | `feature/49-admin-ui` |
+| 16 | #50 | `feature/50-backup-monitoring-waf` |
+| 17 | #51 | `feature/51-nlk-live-measure` |
+| 18 | #52 | `feature/52-release-0-1-0` |
+| 19 | #53 | `feature/53-card-report` |
+| 20 | #54 | `feature/54-terms-withdrawal` |
