@@ -2,3 +2,13 @@
 .DS_Store
 *.env
 !*.env.example
+node_modules/
+.gradle/
+build/
+.next/
+test-results/
+playwright-report/
+infra/cloudflared/credentials.json
+infra/compose/.env
+.superpowers/
+.claude/settings.local.json
