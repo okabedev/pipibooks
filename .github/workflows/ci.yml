@@ -25,27 +25,34 @@ jobs:
       clients: ${{ steps.filter.outputs.clients }}
       infra: ${{ steps.filter.outputs.infra }}
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - id: filter
-        uses: dorny/paths-filter@v4.0.3
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
         with:
           filters: |
             services:
               - 'services/**'
+              - '.github/workflows/**'
+              - '.tool-versions'
             clients:
               - 'clients/**'
               - 'package.json'
               - 'pnpm-lock.yaml'
               - 'pnpm-workspace.yaml'
+              - '.github/workflows/**'
+              - '.nvmrc'
+              - '.tool-versions'
             infra:
               - 'infra/**'
+              - '.dockerignore'
+              - '.github/workflows/**'
 
   pr-title:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       # squash 머지 시 PR 제목이 커밋 메시지가 되므로 커밋 규칙으로 검사한다.
-      - uses: amannn/action-semantic-pull-request@v6.1.1
+      - uses: amannn/action-semantic-pull-request@48f256284bd46cdaab1048c3721360e808335d50 # v6.1.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -73,33 +80,46 @@ jobs:
             docs
             repo
           requireScope: true
-          subjectPattern: ^(?!.*\.$).{1,50}( \(#\d+\))?$
+          # commitlint(subject-max-length 50)와 같은 규칙. squash 커밋에는 GitHub가 " (#N)"을 덧붙이므로
+          # 커밋 제목은 최대 50+자가 되지만, 보호 브랜치의 squash 커밋은 amend·rebase하지 않으므로 commitlint 대상이 아니다.
+          subjectPattern: ^(?!.*\.$).{1,50}$
           subjectPatternError: "제목은 50자 이내, 마침표 없이 작성한다: {subject}"
+
+  branch-name:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # PR 브랜치 이름을 Git Flow 규칙으로 검사한다(로컬 pre-push 훅을 건너뛴 경우의 최종 방어선).
+      - run: bash scripts/check-branch-name.sh "$HEAD_REF"
+        env:
+          HEAD_REF: ${{ github.head_ref }}
 
   scripts:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7.0.1
-      - uses: pnpm/action-setup@v6.1.1
-      - uses: actions/setup-node@v7.1.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm test:scripts
       - run: pnpm check:docs
+      - run: pnpm format:check
 
   services:
     needs: changes
     if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.services == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7.0.1
-      - uses: actions/setup-java@v6.2.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
         with:
           distribution: temurin
           java-version: "25"
-      - uses: gradle/actions/setup-gradle@v6.4.1
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
       - run: ./gradlew build --console=plain
         working-directory: services
 
@@ -108,9 +128,9 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.clients == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7.0.1
-      - uses: pnpm/action-setup@v6.1.1
-      - uses: actions/setup-node@v7.1.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
           cache: pnpm
@@ -125,18 +145,18 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.services == 'true' || needs.changes.outputs.clients == 'true' || needs.changes.outputs.infra == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7.0.1
-      - uses: actions/setup-java@v6.2.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
         with:
           distribution: temurin
           java-version: "25"
-      - uses: gradle/actions/setup-gradle@v6.4.1
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
       - run: bash infra/scripts/build-local.sh
       - run: bash infra/scripts/smoke-test.sh
 
   ci-ok:
     if: always()
-    needs: [changes, pr-title, scripts, services, web, infra]
+    needs: [changes, pr-title, branch-name, scripts, services, web, infra]
     runs-on: ubuntu-latest
     steps:
       # 경로 필터로 건너뛴(skipped) 잡은 통과로 본다. 실패·취소만 막는다.

@@ -61,4 +61,8 @@ assert_pass "cd로 feature 저장소 이동 후 commit 허용" guard "cd $tmp2 &
 assert_pass "따옴표 안의 git commit 문자열 허용" guard 'echo "a && git commit"'
 assert_pass "heredoc 본문의 git commit 문자열 허용" guard "$(printf 'cat > f <<EOF\ngit commit -m x\nEOF')"
 assert_pass "grep 인자의 --no-verify 허용" guard 'grep -rn -- --no-verify docs'
+
+# 최종 리뷰 Minor: 해석할 수 없는 훅 입력은 차단(fail-closed)
+bad_input_code() { echo 'not json' | node "$GUARD" >/dev/null 2>&1; echo $?; }
+assert_pass "잘못된 훅 입력은 exit 2로 차단" test "$(bad_input_code)" = 2
 finish

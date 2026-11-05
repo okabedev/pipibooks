@@ -79,7 +79,13 @@ services:
       ]
     volumes:
       - ../cloudflared/config.yml:/etc/cloudflared/config.yml:ro
-      - ../cloudflared/credentials.json:/etc/cloudflared/credentials.json:ro
+      # 인증 정보 파일이 없으면 디렉토리를 만들지 않고 기동을 실패시킨다.
+      - type: bind
+        source: ../cloudflared/credentials.json
+        target: /etc/cloudflared/credentials.json
+        read_only: true
+        bind:
+          create_host_path: false
     networks: [edge]
 
 networks:

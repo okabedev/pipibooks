@@ -24,6 +24,8 @@
 - 새 공개 경로는 `cloudflared/config.yml`의 ingress에 추가하고 `ingress validate`로 확인한다. 마지막 규칙은 항상 `http_status:404`.
 - 시크릿은 `env/*.env`·`credentials.json`에만 두고 커밋하지 않는다. 예시 파일(`*.example`)에는 값을 비워 둔다.
 - `postgres/init`은 빈 볼륨에서만 실행된다. 이후 스키마 변경은 각 서비스의 Flyway로 한다.
+- init이 실패하면(예: `postgres.env`의 비밀번호 누락) 계정 없는 DB가 남는다. 데이터가 없는 최초 기동이라면 `docker compose -p <프로젝트> -f infra/compose/compose.prod.yml down -v`로 볼륨을 지우고 다시 기동한다.
+- `deploy.sh`는 `credentials.json`과 `TUNNEL_ID`가 없으면 시작하지 않는다(Docker Desktop은 없는 바인드 경로를 디렉토리로 만들어 버린다).
 
 ## 명령 (루트에서 실행)
 | 명령 | 용도 |

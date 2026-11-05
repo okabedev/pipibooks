@@ -49,6 +49,7 @@
 | `pnpm install` | 루트 도구 설치(lefthook 훅 자동 설치) |
 | `pnpm test:scripts` | `scripts/` 검사 스크립트 테스트 |
 | `pnpm check:docs` | 문서 줄 수 검사 |
+| `pnpm format:check` | Prettier 검사(CI와 동일) |
 | `bash scripts/github/setup-repo.sh` | GitHub 라벨·마일스톤·룰셋 재적용 |
 | `cd services && ./gradlew build` | 백엔드 빌드·테스트·정적 분석 (상세: `services/CLAUDE.md`) |
 | `pnpm --filter web test` | 웹 단위 테스트 (상세: `clients/CLAUDE.md`) |
@@ -79,7 +80,7 @@
 ## 금지 사항
 
 - `main`·`develop`에 직접 커밋·푸시
-- `--no-verify` 등 훅 우회, 강제 푸시 (`.claude/hooks/guard-bash.mjs`가 차단)
+- `--no-verify`·`-n`·`LEFTHOOK=0`·`core.hooksPath` 등 훅 우회, 강제 푸시, `main`·`develop`에서의 commit·merge (`.claude/hooks/guard-bash.mjs`가 차단. `main`·`develop` 직접 푸시는 GitHub 룰셋이 막는다)
 - 시크릿(`*.env`, 인증 정보 JSON)을 저장소에 커밋
 - 다른 컴포넌트가 소유한 DB 스키마에 쓰기
 - Flyway 마이그레이션 없이 DB 스키마 변경

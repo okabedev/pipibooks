@@ -30,7 +30,7 @@ ok() { echo "  ok   - $1"; }
 fail() { echo "  FAIL - $1"; failures=$((failures + 1)); }
 
 health() { # <name> <network> <url>
-  if docker run --rm --network "${PROJECT}_$2" "$CURL_IMAGE" -fsS --retry 40 --retry-delay 2 --retry-all-errors "$3" 2>/dev/null | grep -q '"UP"'; then
+  if docker run --rm --network "${PROJECT}_$2" "$CURL_IMAGE" -fsS --connect-timeout 3 --max-time 5 --retry 40 --retry-delay 2 --retry-all-errors "$3" 2>/dev/null | grep -q '"UP"'; then
     ok "health $1"
   else fail "health $1 ($3)"; fi
 }
@@ -50,6 +50,15 @@ priv f "has_schema_privilege('core_app','catalog','CREATE')"
 priv t "has_schema_privilege('catalog_app','catalog','CREATE')"
 priv f "has_schema_privilege('events_app','core','USAGE')"
 priv f "has_schema_privilege('core_app','public','CREATE')"
+
+# catalog_app이 만든 테이블은 core_app이 읽기만 할 수 있어야 한다(ALTER DEFAULT PRIVILEGES).
+compose exec -T postgres psql -U postgres -d pipibooks -qc "SET ROLE catalog_app; CREATE TABLE catalog.smoke_probe(id int);" >/dev/null
+priv t "has_table_privilege('core_app','catalog.smoke_probe','SELECT')"
+priv f "has_table_privilege('core_app','catalog.smoke_probe','INSERT')"
+# 각 계정의 기본 search_path는 자기 스키마다.
+priv t "(SELECT 'search_path=core' = ANY(rolconfig) FROM pg_roles WHERE rolname='core_app')"
+priv t "(SELECT 'search_path=catalog' = ANY(rolconfig) FROM pg_roles WHERE rolname='catalog_app')"
+priv t "(SELECT 'search_path=events' = ANY(rolconfig) FROM pg_roles WHERE rolname='events_app')"
 
 if [ "$failures" -ne 0 ]; then echo "SMOKE TEST FAILED ($failures)"; compose logs --tail 30 >&2 || true; exit 1; fi
 echo "SMOKE TEST PASSED"

@@ -25,7 +25,7 @@
 - [ ] 대시보드 Zero Trust → Access: 애플리케이션 `pipibooks.com/admin*`, 정책은 운영자 이메일만 허용
 
 **GHCR**
-- [ ] 첫 릴리스 후 GitHub → Packages에서 `pipibooks-web`, `pipibooks-core-api`, `pipibooks-catalog-worker`, `pipibooks-event-collector`를 Public으로 변경(호스트가 로그인 없이 pull)
+- [ ] 이미지가 로그인 없이 pull 되는지 확인: `docker logout ghcr.io; docker pull ghcr.io/okabedev/pipibooks-web:<버전>`. 패키지는 Public 저장소의 공개 범위를 이어받는다(v0.0.1에서 확인). 실패하면 GitHub → Packages에서 Public으로 바꾼다.
 
 **운영 체크아웃** (개발 작업 트리와 분리)
 - [ ] `git -C ~/projects/pipibooks worktree add ~/pipibooks-prod v0.0.1` — 운영은 항상 이 디렉토리에서 배포 태그를 체크아웃해 실행한다. compose 파일·터널 설정·init 스크립트가 이미지와 같은 리비전이어야 하기 때문이다.
