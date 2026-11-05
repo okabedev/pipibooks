@@ -16,6 +16,6 @@ dependencies {
 
     testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
     testImplementation(libs.archunit.junit5)
-    testImplementation("org.testcontainers:testcontainers-postgresql")
+    testImplementation(testFixtures(project(":libs:common")))
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }

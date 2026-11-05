@@ -15,16 +15,16 @@ object CursorCodec {
 
     fun decode(cursor: String): Map<String, String> =
         try {
-            mapper.readValue(Base64.getUrlDecoder().decode(cursor), type)
+            mapper.readValue(Base64.getUrlDecoder().decode(cursor), type) ?: throw invalid(null)
         } catch (e: IllegalArgumentException) {
             throw invalid(e)
         } catch (e: tools.jackson.core.JacksonException) {
             throw invalid(e)
         }
 
-    private fun invalid(cause: Exception): ApiException {
+    private fun invalid(cause: Exception?): ApiException {
         val e = ApiException(HttpStatus.BAD_REQUEST, "INVALID_CURSOR", "잘못된 커서")
-        e.initCause(cause)
+        cause?.let { e.initCause(it) }
         return e
     }
 }

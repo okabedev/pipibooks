@@ -16,6 +16,6 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
 
     testImplementation("org.springframework.boot:spring-boot-starter-webflux-test")
-    testImplementation("org.testcontainers:testcontainers-postgresql")
+    testImplementation(testFixtures(project(":libs:common")))
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
