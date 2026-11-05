@@ -25,3 +25,7 @@ pre-commit:
     ktlint:
       glob: "services/**/*.{kt,kts}"
       run: cd services && ./gradlew ktlintCheck --quiet
+    eslint:
+      root: clients/web/
+      glob: "*.{ts,tsx}"
+      run: pnpm exec eslint {staged_files}

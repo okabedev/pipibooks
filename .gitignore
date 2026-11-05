@@ -12,3 +12,4 @@ infra/cloudflared/credentials.json
 infra/compose/.env
 .superpowers/
 .claude/settings.local.json
+.pnpm-store/

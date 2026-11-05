@@ -51,6 +51,7 @@
 | `pnpm check:docs` | 문서 줄 수 검사 |
 | `bash scripts/github/setup-repo.sh` | GitHub 라벨·마일스톤·룰셋 재적용 |
 | `cd services && ./gradlew build` | 백엔드 빌드·테스트·정적 분석 (상세: `services/CLAUDE.md`) |
+| `pnpm --filter web test` | 웹 단위 테스트 (상세: `clients/CLAUDE.md`) |
 
 ## 문서 색인 (필요할 때만 읽는다)
 
