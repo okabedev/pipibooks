@@ -1,0 +1,31 @@
+# 로컬 git 훅. 규칙: docs/conventions/git.md
+output:
+  - failure
+commit-msg:
+  commands:
+    commitlint:
+      run: pnpm exec commitlint --edit {1}
+
+pre-push:
+  commands:
+    branch-name:
+      run: bash scripts/check-branch-name.sh
+
+pre-commit:
+  parallel: true
+  commands:
+    docs:
+      glob: "*.md"
+      run: bash scripts/check-docs.sh
+    prettier:
+      glob: "*.{json,yml,yaml,mjs,js,ts,tsx,css}"
+      exclude:
+        - pnpm-lock.yaml
+      run: pnpm exec prettier --check {staged_files}
+    ktlint:
+      glob: "services/**/*.{kt,kts}"
+      run: cd services && ./gradlew ktlintCheck --quiet
+    eslint:
+      root: clients/web/
+      glob: "*.{ts,tsx}"
+      run: pnpm exec eslint {staged_files}

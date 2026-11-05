@@ -1,0 +1,29 @@
+# 도메인 모델
+
+근거: 스펙 §4.2·§4.3, ADR 0008
+
+## catalog (catalog-worker 소유)
+- `book`: `isbn13`(UNIQUE), 제목, 저자, 출판사, 출간일, KDC, 쪽수, 표지 URL, 소개, 목차, `fetched_at`. ISBN이 없는 도서는 수집하지 않는다.
+- `card_draft`: `book_id`, 슬라이드 묶음(jsonb), 생성기 이름·버전, 생성 시각
+
+## core (core-api 소유)
+- `member`: 닉네임, 프로필 이미지, 역할(`USER`/`ADMIN`), 상태, `deleted_at`
+- `social_account`: `member_id`, 제공자(`KAKAO`/`GOOGLE`/`APPLE`), 제공자 사용자 ID. (제공자, 사용자 ID) UNIQUE
+- `refresh_token`: `member_id`, 토큰 해시, 기기 정보, `expires_at`, `revoked_at`
+- `member_interest`: `member_id`, KDC 코드
+- `card`: `book_id`, 출처(`AUTO`/`CURATED`), 상태(`DRAFT`/`PUBLISHED`/`HIDDEN`), `published_at`
+- `card_slide`: `card_id`, 순서, 타입(`COVER`/`HOOK`/`QUOTE`/`INFO`/`FOR_WHOM`/`KEYWORDS`), `payload`(jsonb)
+- `shelf_item`: `member_id`, `book_id`((회원, 도서) UNIQUE), 상태(`WISH`/`READING`/`FINISHED`/`DROPPED`), 시작일, 완독일, 별점(1~5), 한줄평
+- `reading_log`: `shelf_item_id`, 날짜(`date`), 읽은 페이지, 메모
+- `quote`: `shelf_item_id`, 페이지, 본문
+
+## events (event-collector 소유)
+- `user_event`(`occurred_at` 기준 월별 파티션): `member_id`(nullable), `anonymous_id`, `session_id`, `type`, `card_id`, `book_id`, `slide_index`, `dwell_ms`, `platform`, `app_version`, `occurred_at`, `received_at`
+- 타입과 페이로드는 `services/libs/event-schema`에서 정의한다. 상세: `docs/domain/feed.md`
+
+## 공통 규칙
+- PK는 TSID(64비트, 시간순). API에서는 문자열로 노출한다.
+- 시각은 `timestamptz`(UTC)로 저장한다. 독서 기록의 날짜만 `date`.
+- 회원 탈퇴: soft delete 후 개인정보 익명화, 이벤트의 `member_id` 연결을 끊는다.
+- 위시는 별도 테이블 없이 `shelf_item`의 `WISH` 상태다.
+- 슬라이드는 타입별 렌더러로 그린다. 새 슬라이드 타입은 서버 enum, `clients/packages/shared` 스키마, 웹·앱 렌더러를 함께 추가한다.
