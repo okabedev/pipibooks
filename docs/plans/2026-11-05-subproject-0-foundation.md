@@ -445,11 +445,11 @@
 | Task | 이슈 | 브랜치 |
 |---|---|---|
 | 1 | #1 | `feature/1-repo-setup` |
-| 2 | | `feature/<N>-root-toolchain` |
-| 3 | | `feature/<N>-docs-skeleton` |
-| 4 | | `feature/<N>-claude-guards` |
-| 5 | | `feature/<N>-services-skeleton` |
-| 6 | | `feature/<N>-web-skeleton` |
-| 7 | | `feature/<N>-compose-skeleton` |
-| 8 | | `feature/<N>-ci-pipeline` |
-| 9 | | `feature/<N>-deploy-release` |
+| 2 | #3 | `feature/3-root-toolchain` |
+| 3 | #4 | `feature/4-docs-skeleton` |
+| 4 | #5 | `feature/5-claude-guards` |
+| 5 | #6 | `feature/6-services-skeleton` |
+| 6 | #7 | `feature/7-web-skeleton` |
+| 7 | #8 | `feature/8-compose-skeleton` |
+| 8 | #9 | `feature/9-ci-pipeline` |
+| 9 | #10 | `feature/10-deploy-release` |
