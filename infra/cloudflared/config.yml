@@ -1,5 +1,5 @@
-# Cloudflare Tunnel 라우팅(스펙 §7.3). 터널 ID는 compose가 실행 인자로 넘긴다.
-credentials-file: /etc/cloudflared/credentials.json
+# Cloudflare Tunnel 라우팅(스펙 §7.3). pipibooks-cloudflared 이미지에 포함된다(infra/cloudflared/Dockerfile).
+# 터널 ID는 compose가 실행 인자로, 인증 정보는 환경 변수 TUNNEL_CRED_CONTENTS로 넘긴다.
 
 ingress:
   - hostname: pipibooks.com
