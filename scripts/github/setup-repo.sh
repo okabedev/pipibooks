@@ -98,6 +98,13 @@ setup_ruleset() {
   fi
 }
 
+setup_merge_settings() {
+  # squash 커밋 제목 = PR 제목(+ 번호), 본문 = 커밋 메시지 모음
+  gh api -X PATCH "repos/$REPO" -f squash_merge_commit_title=PR_TITLE -f squash_merge_commit_message=COMMIT_MESSAGES \
+    -F allow_rebase_merge=false -F allow_squash_merge=true -F allow_merge_commit=true -F delete_branch_on_merge=true >/dev/null
+  log "apply merge settings"
+}
+
 setup_security() {
   gh api -X PATCH "repos/$REPO" --input - >/dev/null <<'JSON'
 {"security_and_analysis": {"secret_scanning": {"status": "enabled"}, "secret_scanning_push_protection": {"status": "enabled"}}}
@@ -109,4 +116,5 @@ setup_labels
 setup_milestones
 setup_issues
 setup_ruleset
+setup_merge_settings
 setup_security
