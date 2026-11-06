@@ -5,6 +5,7 @@ plugins {
 dependencies {
     implementation(project(":libs:common"))
     implementation("org.springframework.boot:spring-boot-starter-webflux")
+    implementation("org.springframework.boot:spring-boot-starter-webclient")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("tools.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
@@ -17,5 +18,6 @@ dependencies {
 
     testImplementation("org.springframework.boot:spring-boot-starter-webflux-test")
     testImplementation(testFixtures(project(":libs:common")))
+    testImplementation(libs.wiremock.standalone)
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }

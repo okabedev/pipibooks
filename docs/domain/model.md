@@ -3,7 +3,8 @@
 근거: 스펙 §4.2·§4.3, ADR 0008
 
 ## catalog (catalog-worker 소유)
-- `book`: `isbn13`(UNIQUE), 제목, 저자, 출판사, 출간일, KDC, 쪽수, 표지 URL, 소개, 목차, `fetched_at`. ISBN이 없는 도서는 수집하지 않는다.
+- `book`: `isbn13`(UNIQUE), 제목, 저자, 출판사, 발행예정일(`publish_predate`), KDC, 쪽수, 표지 URL, 소개, 목차, 부가기호(`ea_add_code`), 형태(`form`), 전자책 여부(`ebook_yn`), 세트 ISBN(`set_isbn`), `fetched_at`. ISBN이 없거나 검증숫자가 틀린 도서는 수집하지 않는다. 표지 URL은 https이며 확인에 실패하면 `NULL`이다.
+- `collect_run`: 수집 실행 이력. 종류(`NEW_BOOKS`/`SEED_ISBN`/`SEED_KEYWORD`), `params`(jsonb), 상태(`RUNNING`/`SUCCEEDED`/`FAILED`), 조회·저장·초안 건수, 오류, 시작·종료 시각
 - `card_draft`: `book_id`, 슬라이드 묶음(jsonb), 생성기 이름·버전, 생성 시각
 
 ## core (core 모듈 소유)

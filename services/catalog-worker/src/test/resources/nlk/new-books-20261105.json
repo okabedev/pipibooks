@@ -1,0 +1,32 @@
+{
+  "TOTAL_COUNT": "2",
+  "PAGE_NO": "1",
+  "docs": [
+    {
+      "TITLE": "바다와 섬 이야기",
+      "AUTHOR": "김하늘 지음 ; 이바다 옮김",
+      "PUBLISHER": "파도출판사",
+      "EA_ISBN": "978-89-123-4567-9",
+      "SET_ISBN": "",
+      "PUBLISH_PREDATE": "20261105",
+      "KDC": "813.7",
+      "PAGE": "320",
+      "FORM": "종이책",
+      "EBOOK_YN": "N",
+      "EA_ADD_CODE": "03810",
+      "BOOK_INTRODUCTION": "바다와 섬을 오가며 살아가는 사람들의 이야기를 담은 소설이다.",
+      "BOOK_TB_CNT": "1부 바다\n2부 섬"
+    },
+    {
+      "TITLE": "조용한 숲",
+      "AUTHOR": "박나무",
+      "PUBLISHER": "숲속책방",
+      "EA_ISBN": "9788999990014",
+      "PUBLISH_PREDATE": "20261105",
+      "KDC": "818",
+      "PAGE": "180",
+      "EBOOK_YN": "N",
+      "EA_ADD_CODE": "04810"
+    }
+  ]
+}
