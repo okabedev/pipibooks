@@ -21,4 +21,10 @@ class KeywordExtractorTest {
         val keywords = KeywordExtractor.extract("우주", "이야기를 이야기가 이야기는 우주를 우주", null)
         assertEquals(listOf("우주"), keywords)
     }
+
+    @Test
+    fun `책은과 책이는 키워드가 아니다`() {
+        val intro = "책은 책이 책을 책의 책도 책과 책에 책으로 우주"
+        assertEquals(listOf("우주"), KeywordExtractor.extract("책", intro, "책은 우주"))
+    }
 }
