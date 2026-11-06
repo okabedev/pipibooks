@@ -12,8 +12,9 @@
 - `social_account`: `member_id`, 제공자(`KAKAO`/`GOOGLE`/`APPLE`), 제공자 사용자 ID. (제공자, 사용자 ID) UNIQUE
 - `refresh_token`: `member_id`, 토큰 해시, 기기 정보, `expires_at`, `revoked_at`
 - `member_interest`: `member_id`, KDC 코드
-- `card`: `book_id`, 출처(`AUTO`/`CURATED`), 상태(`DRAFT`/`PUBLISHED`/`HIDDEN`), `published_at`
-- `card_slide`: `card_id`, 순서, 타입(`COVER`/`HOOK`/`QUOTE`/`INFO`/`FOR_WHOM`/`KEYWORDS`), `payload`(jsonb)
+- `card`: `book_id`(UNIQUE, catalog.book ID 값만 저장·FK 없음), 출처(`AUTO`/`CURATED`), 상태(`DRAFT`/`PUBLISHED`/`HIDDEN`), `published_at`, `edited_at`(관리자가 편집·재적용한 시각), `created_at`
+- `card_slide`: `card_id`, 순서(`position`), 타입(`COVER`/`HOOK`/`QUOTE`/`INFO`/`FOR_WHOM`/`KEYWORDS`), `payload`(jsonb, `type` 필드 포함). (`card_id`, `position`) UNIQUE
+- `sync_cursor`: `name`(PK), `last_id`. 다른 스키마를 읽어 동기화하는 작업의 마지막 처리 ID(카드 동기화는 `name='card_draft'`)
 - `shelf_item`: `member_id`, `book_id`((회원, 도서) UNIQUE), 상태(`WISH`/`READING`/`FINISHED`/`DROPPED`), 시작일, 완독일, 별점(1~5), 한줄평
 - `reading_log`: `shelf_item_id`, 날짜(`date`), 읽은 페이지, 메모
 - `quote`: `shelf_item_id`, 페이지, 본문

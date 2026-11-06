@@ -22,6 +22,17 @@ spring:
     redis:
       host: ${REDIS_HOST:redis}
       port: ${REDIS_PORT:6379}
+  mvc:
+    problemdetails:
+      enabled: true
+card:
+  sync:
+    enabled: true
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: false
 server:
   port: 8080
 management:

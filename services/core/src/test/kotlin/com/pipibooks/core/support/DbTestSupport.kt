@@ -10,6 +10,10 @@ abstract class DbTestSupport {
     companion object {
         @JvmStatic
         @DynamicPropertySource
-        fun properties(registry: DynamicPropertyRegistry) = DbTestFixture.register(registry, "core_app", true)
+        fun properties(registry: DynamicPropertyRegistry) {
+            DbTestFixture.register(registry, "core_app", true)
+            CatalogTestData.migrate()
+            registry.add("card.sync.enabled") { false } // 테스트는 syncDrafts()를 직접 호출한다
+        }
     }
 }
