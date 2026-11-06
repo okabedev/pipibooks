@@ -12,7 +12,7 @@ class KeywordExtractorTest {
 
     @Test
     fun `조사를 떼고 두 글자 이상 남을 때만 뗀다`() {
-        assertEquals(listOf("사랑", "책을"), KeywordExtractor.extract("사랑을 책을", null, null))
+        assertEquals(listOf("사랑", "꿈을"), KeywordExtractor.extract("사랑을 꿈을", null, null))
         assertEquals(listOf("동물", "나무"), KeywordExtractor.extract("동물들 나무가", null, null))
     }
 
