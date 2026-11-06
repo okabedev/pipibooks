@@ -4,6 +4,7 @@ plugins {
 
 dependencies {
     implementation(project(":libs:common"))
+    implementation(project(":libs:event-schema"))
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("tools.jackson.module:jackson-module-kotlin")
@@ -12,6 +13,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-flyway")
     implementation("org.flywaydb:flyway-database-postgresql")
     implementation("org.springframework.boot:spring-boot-starter-data-redis")
+    implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation(libs.springdoc.openapi.webmvc)
     runtimeOnly("org.postgresql:postgresql")
 

@@ -10,4 +10,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "pipibooks-services"
 
-include("core", "catalog-worker", "event-collector", "libs:common")
+include("core", "catalog-worker", "event-collector", "libs:common", "libs:event-schema")
