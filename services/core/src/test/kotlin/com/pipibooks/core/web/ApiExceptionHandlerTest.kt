@@ -18,6 +18,8 @@ class ApiExceptionHandlerTest(
         mockMvc.get("/test/api-exception").andExpect {
             status { isNotFound() }
             content { contentTypeCompatibleWith("application/problem+json") }
+            jsonPath("$.status") { value(404) }
+            jsonPath("$.title") { value("Not Found") }
             jsonPath("$.code") { value("X_NOT_FOUND") }
             jsonPath("$.detail") { value("없음") }
         }
