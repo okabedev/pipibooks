@@ -71,6 +71,7 @@
 | `docs/ops/deploy.md` | 호스트 준비·배포·롤백·운영 확인이 필요할 때 |
 | `.claude/skills/start-feature/` | 새 작업을 시작할 때(스킬 `start-feature`) |
 | `.claude/skills/release/` | 릴리스할 때(스킬 `release`) |
+| `.claude/skills/add-migration/` | DB 마이그레이션을 추가할 때(스킬 `add-migration`) |
 
 ## 문서 규칙
 
