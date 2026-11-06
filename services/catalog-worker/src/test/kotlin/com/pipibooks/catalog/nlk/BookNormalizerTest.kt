@@ -94,7 +94,8 @@ class BookNormalizerTest {
     @Test
     fun `콜론 앞뒤 공백이 없어도 역할을 뗀다`() {
         assertEquals("오병곤", author("사진작가: 오병곤"))
-        assertEquals("고재봉, 김상태,천영기,류제혁", author("집필: 고재봉 ;사진: 김상태,천영기,류제혁"))
+        assertEquals("고재봉, 김상태, 천영기, 류제혁", author("집필: 고재봉 ;사진: 김상태,천영기,류제혁"))
+        assertEquals("김상태, 천영기, 류제혁", author("저자 : 김상태,천영기,류제혁"))
     }
 
     @Test

@@ -44,6 +44,11 @@ abstract class NlkTestSupport : DbTestSupport() {
     fun resetFixtures() {
         NlkWireMock.server.resetAll()
         db
+            .sql("DELETE FROM catalog.card_draft")
+            .fetch()
+            .rowsUpdated()
+            .block()
+        db
             .sql("DELETE FROM catalog.book")
             .fetch()
             .rowsUpdated()

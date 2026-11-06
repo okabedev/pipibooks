@@ -1,6 +1,7 @@
 package com.pipibooks.catalog.collect
 
 import com.pipibooks.catalog.book.BookIngestor
+import com.pipibooks.catalog.book.ListenerFailedException
 import com.pipibooks.catalog.nlk.NlkAuthException
 import com.pipibooks.catalog.nlk.NlkClient
 import com.pipibooks.catalog.nlk.NlkPage
@@ -71,6 +72,7 @@ class CollectService(
     private class Tally {
         var fetched = 0
         var saved = 0
+        var drafts = 0
         val failures = mutableListOf<String>()
     }
 
@@ -108,9 +110,17 @@ class CollectService(
             if (ok) "SUCCEEDED" else "FAILED",
             tally.fetched,
             tally.saved,
+            tally.drafts,
             tally.failures.joinToString("; ").ifEmpty { null },
         )
-        log.info("수집 종료 runId={} ok={} fetched={} saved={}", runId, ok, tally.fetched, tally.saved)
+        log.info(
+            "수집 종료 runId={} ok={} fetched={} saved={} drafts={}",
+            runId,
+            ok,
+            tally.fetched,
+            tally.saved,
+            tally.drafts,
+        )
     }
 
     private suspend fun runType(
@@ -172,11 +182,18 @@ class CollectService(
     ) {
         tally.fetched++
         try {
-            if (ingestor.ingest(record) != null) tally.saved++
+            ingestor.ingest(record)?.let {
+                tally.saved++
+                if (it.draftCreated) tally.drafts++
+            }
         } catch (e: CancellationException) {
             throw e
         } catch (e: NlkAuthException) {
             throw e
+        } catch (e: ListenerFailedException) {
+            tally.saved++ // 도서는 저장됐다. 초안 생성만 실패했고 다음 수집에서 복구된다.
+            log.error("초안 생성 실패 isbn={}", record.eaIsbn, e)
+            tally.failures += "${record.eaIsbn}: ${e.message}"
         } catch (
             @Suppress("TooGenericExceptionCaught") e: Exception,
         ) {

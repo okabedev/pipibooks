@@ -5,7 +5,7 @@
 ## catalog (catalog-worker 소유)
 - `book`: `isbn13`(UNIQUE), 제목, 저자, 출판사, 발행예정일(`publish_predate`), KDC(API의 `KDC`가 비면 `SUBJECT` 대분류 한 자리), 쪽수, 표지 URL, 소개, 목차, 부가기호(`ea_add_code`), 형태(`form`), 전자책 여부(`ebook_yn`), 세트 ISBN(`set_isbn`), `fetched_at`. ISBN이 없거나 검증숫자가 틀린 도서는 수집하지 않는다. 표지는 원본 URL(`cover_source_url`, https)과 확인을 통과한 `cover_url`로 나눠 저장한다. 확인에 실패하면 `cover_url`만 `NULL`이고, 변경 감지는 원본 URL로 하므로 깨진 표지를 다시 받아도 재확인·초안 재생성을 하지 않는다.
 - `collect_run`: 수집 실행 이력. 종류(`NEW_BOOKS`/`SEED_ISBN`/`SEED_KEYWORD`), `params`(jsonb), 상태(`RUNNING`/`SUCCEEDED`/`FAILED`), 조회·저장·초안 건수, 오류, 시작·종료 시각
-- `card_draft`: `book_id`, 슬라이드 묶음(jsonb), 생성기 이름·버전, 생성 시각
+- `card_draft`: `book_id`(같은 스키마 FK), 슬라이드 묶음(`slides` jsonb, `type` 필드 포함), 생성기 이름·버전(`generator_name`/`generator_version`), `auto_publishable`, 걸린 사유(`blocked_reasons` text[], enum 이름: `SHORT_INTRODUCTION`/`NOT_PRINT_SINGLE`/`STUDY_REFERENCE`/`NO_COVER`), 생성 시각. `auto_publishable`은 사유가 없을 때만 true. core가 `id` 순으로 읽는다.
 
 ## core (core 모듈 소유)
 - `member`: 닉네임, 프로필 이미지, 역할(`USER`/`ADMIN`), 상태, `deleted_at`

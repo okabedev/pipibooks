@@ -59,6 +59,14 @@ class CollectServiceTest(
             assertEquals("SUCCEEDED", run.status)
             assertEquals(5, run.fetchedCount)
             assertEquals(5, run.savedCount)
+            val drafts =
+                db
+                    .sql("SELECT count(*) AS n FROM catalog.card_draft")
+                    .map { r -> r.get("n", Long::class.javaObjectType)!!.toInt() }
+                    .one()
+                    .block()
+            assertEquals(drafts, run.draftCount)
+            assertTrue(run.draftCount > 0)
             assertNull(run.error)
             val book = books.findByIsbn("9791176449236")!!
             assertEquals("해커스 주택관리사 2차 기본서 공동주택관리실무 1", book.title)

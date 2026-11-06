@@ -93,7 +93,7 @@ class InternalBookController(
         books.findByIsbn(isbn)?.let { return BookIdResponse(Tsid.format(it.id)) }
         val record = unavailableOnFailure { client.byIsbn(isbn) }
         val bookId =
-            record?.let { ingestor.ingest(it) }
+            record?.let { ingestor.ingest(it)?.bookId }
                 ?: throw ApiException(HttpStatus.NOT_FOUND, "BOOK_NOT_FOUND", "도서를 찾을 수 없습니다.")
         return BookIdResponse(Tsid.format(bookId))
     }
