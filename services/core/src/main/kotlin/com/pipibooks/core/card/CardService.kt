@@ -6,8 +6,12 @@ import com.pipibooks.common.slide.SlidePayload
 import jakarta.persistence.EntityManager
 import org.slf4j.LoggerFactory
 import org.springframework.dao.DataAccessException
+import org.springframework.dao.DataAccessResourceFailureException
+import org.springframework.dao.RecoverableDataAccessException
+import org.springframework.dao.TransientDataAccessException
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
+import org.springframework.transaction.TransactionException
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.support.TransactionTemplate
 import tools.jackson.databind.json.JsonMapper
@@ -56,6 +60,8 @@ class CardService(
                 made
             } == true
         } catch (e: RuntimeException) {
+            // 일시적 오류(연결 끊김·교착·타임아웃)는 커서를 넘기지 않고 중단해 다음 주기에 같은 초안부터 다시 시도한다.
+            if (isTransient(e)) throw e
             log.error("초안 {}(책 {}) 처리에 실패해 건너뛴다", draft.id, draft.bookId, e)
             tx.executeWithoutResult { cursor.set(CURSOR_NAME, draft.id) }
             false
@@ -113,6 +119,12 @@ class CardService(
             em.persist(CardSlideEntity(Tsid.next(), cardId, index, type, json))
         }
     }
+
+    private fun isTransient(e: Throwable): Boolean =
+        e is TransientDataAccessException ||
+            e is RecoverableDataAccessException ||
+            e is DataAccessResourceFailureException ||
+            e is TransactionException
 
     private fun isMissingTable(e: Throwable): Boolean =
         generateSequence(e) { it.cause }.any { it is SQLException && it.sqlState == UNDEFINED_TABLE }
