@@ -26,6 +26,8 @@ object BookNormalizer {
     private const val ISBN_LENGTH = 13
     private const val EA_ADD_CODE_MAX = 5
     private const val DATE_LENGTH = 8
+    private const val KDC_MAX = 16
+    private const val FORM_MAX = 64
     private const val ISBN_MOD = 10
     private const val ISBN_ODD_WEIGHT = 3
     private const val ROLES = "지음|지은이|옮김|옮긴이|엮음|엮은이|그림|글|감수|편저|편|저|역|공저|공역|사진"
@@ -44,22 +46,22 @@ object BookNormalizer {
                 author = author(r.author),
                 publisher = clean(r.publisher),
                 publishPredate = date(r.publishPredate),
-                kdc = clean(r.kdc),
-                pages = clean(r.page)?.takeWhile(Char::isDigit)?.toIntOrNull(),
+                kdc = clean(r.kdc)?.take(KDC_MAX),
+                pages = clean(r.page)?.takeWhile(::isAsciiDigit)?.toIntOrNull(),
                 coverUrl = clean(r.titleUrl)?.replaceFirst(Regex("^http://", RegexOption.IGNORE_CASE), "https://"),
                 introduction = clean(r.bookIntroduction),
                 tableOfContents = clean(r.bookTbCnt),
                 eaAddCode = clean(r.eaAddCode)?.takeIf { it.length <= EA_ADD_CODE_MAX },
-                form = clean(r.form),
+                form = clean(r.form)?.take(FORM_MAX),
                 ebookYn = ebook(r.ebookYn),
-                setIsbn = clean(r.setIsbn)?.filter(Char::isDigit)?.takeIf { it.length == ISBN_LENGTH },
+                setIsbn = clean(r.setIsbn)?.filter(::isAsciiDigit)?.takeIf { it.length == ISBN_LENGTH },
             )
         }
     }
 
     /** 숫자만 남겨 13자리이고 검증숫자가 맞을 때만 돌려준다. */
     fun isbn13(raw: String?): String? {
-        val digits = raw?.filter(Char::isDigit) ?: return null
+        val digits = raw?.filter(::isAsciiDigit) ?: return null
         return digits.takeIf { it.length == ISBN_LENGTH && checkDigitOk(it) }
     }
 
@@ -67,6 +69,8 @@ object BookNormalizer {
         val sum = d.mapIndexed { i, c -> (c - '0') * if (i % 2 == 0) 1 else ISBN_ODD_WEIGHT }.sum()
         return sum % ISBN_MOD == 0
     }
+
+    private fun isAsciiDigit(c: Char) = c in '0'..'9'
 
     private fun ebook(s: String?): Boolean? =
         when (clean(s)?.uppercase()) {

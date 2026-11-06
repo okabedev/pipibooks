@@ -42,6 +42,18 @@ class BookNormalizerTest {
     }
 
     @Test
+    fun `전각 숫자 ISBN은 버린다`() {
+        assertNull(BookNormalizer.normalize(record(isbn = "９７８８９１２３４５６７９")))
+    }
+
+    @Test
+    fun `컬럼 길이를 넘는 값은 잘라서 저장 가능하게 한다`() {
+        val book = BookNormalizer.normalize(record().copy(kdc = "8".repeat(40), form = "f".repeat(100)))
+        assertEquals(16, book!!.kdc!!.length)
+        assertEquals(64, book.form!!.length)
+    }
+
+    @Test
     fun `검증숫자가 틀린 ISBN은 버린다`() {
         assertNull(BookNormalizer.normalize(record(isbn = "978-89-123-4567-8")))
         assertNull(BookNormalizer.normalize(record(isbn = null)))

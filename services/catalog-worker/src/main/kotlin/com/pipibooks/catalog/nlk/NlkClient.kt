@@ -46,7 +46,7 @@ class NlkClient(
         priority: Priority = Priority.USER,
     ): NlkRecord? {
         val page = search(priority, 1, "isbn" to isbn13)
-        return page.records.firstOrNull { it.eaIsbn?.filter(Char::isDigit) == isbn13 }
+        return page.records.firstOrNull { it.eaIsbn?.filter { it in '0'..'9' } == isbn13 }
     }
 
     private suspend fun search(

@@ -89,7 +89,7 @@ class InternalBookController(
     ): BookIdResponse {
         val isbn =
             BookNormalizer.isbn13(request.isbn)
-                ?: throw ApiException(HttpStatus.BAD_REQUEST, "INVALID_ISBN", "올바르지 않은 ISBN입니다.")
+                ?: throw invalidIsbn()
         books.findByIsbn(isbn)?.let { return BookIdResponse(Tsid.format(it.id)) }
         val record = unavailableOnFailure { client.byIsbn(isbn) }
         val bookId =
@@ -102,17 +102,21 @@ class InternalBookController(
     suspend fun startRun(
         @RequestBody request: CollectRequest,
     ): ResponseEntity<RunIdResponse> {
+        val normalized = request.isbns?.map { BookNormalizer.isbn13(it) ?: throw invalidIsbn() }
         val invalid =
             (request.type == CollectType.SEED_ISBN && request.isbns.isNullOrEmpty()) ||
                 (request.type == CollectType.SEED_KEYWORD && request.keyword.isNullOrBlank())
         if (invalid) throw ApiException(HttpStatus.BAD_REQUEST, "INVALID_REQUEST", "시드 수집에는 isbns 또는 keyword가 필요합니다.")
-        return ResponseEntity.accepted().body(RunIdResponse(Tsid.format(collect.launch(request))))
+        val runId = collect.launch(request.copy(isbns = normalized))
+        return ResponseEntity.accepted().body(RunIdResponse(Tsid.format(runId)))
     }
 
     @GetMapping("/collect-runs")
     suspend fun listRuns(
         @RequestParam(defaultValue = "20") size: Int,
     ): List<CollectRunResponse> = runs.recent(size.coerceIn(1, MAX_RUNS)).map { it.toResponse() }
+
+    private fun invalidIsbn() = ApiException(HttpStatus.BAD_REQUEST, "INVALID_ISBN", "올바르지 않은 ISBN입니다.")
 
     private suspend fun <T> unavailableOnFailure(block: suspend () -> T): T =
         try {

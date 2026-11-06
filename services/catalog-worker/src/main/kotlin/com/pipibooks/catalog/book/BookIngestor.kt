@@ -17,7 +17,9 @@ class BookIngestor(
         val normalized = BookNormalizer.normalize(record) ?: return null
         val result = books.upsert(normalized)
         val cover = normalized.coverUrl
-        if (result.coverUrlChanged && cover != null && !covers.verify(cover)) books.clearCover(result.bookId)
+        if (cover != null && result.coverUrlChanged && covers.verify(cover)) {
+            books.setVerifiedCover(result.bookId, cover)
+        }
         books.findByIsbn(normalized.isbn13)?.let { listener.onUpsert(it, result) }
         return result.bookId
     }

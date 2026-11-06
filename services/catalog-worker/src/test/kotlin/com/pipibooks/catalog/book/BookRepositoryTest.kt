@@ -67,7 +67,6 @@ class BookRepositoryTest(
     fun `깨진 표지를 다시 받아도 변경으로 보지 않는다`() =
         runBlocking {
             repository.upsert(book())
-            repository.clearCover(repository.findByIsbn("9788912345679")!!.id)
 
             val again = repository.upsert(book())
 

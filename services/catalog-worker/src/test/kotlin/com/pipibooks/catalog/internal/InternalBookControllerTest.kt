@@ -5,6 +5,7 @@ import com.github.tomakehurst.wiremock.client.WireMock.get
 import com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
 import com.pipibooks.catalog.book.BookRepository
+import com.pipibooks.catalog.collect.CollectRunRepository
 import com.pipibooks.catalog.nlk.NormalizedBook
 import com.pipibooks.catalog.support.NlkTestSupport
 import com.pipibooks.catalog.support.NlkWireMock
@@ -22,6 +23,7 @@ import org.springframework.test.web.reactive.server.WebTestClient
 class InternalBookControllerTest(
     @Autowired private val client: WebTestClient,
     @Autowired private val books: BookRepository,
+    @Autowired private val runs: CollectRunRepository,
 ) : NlkTestSupport() {
     private val wireMock = NlkWireMock.server
     private val path = urlPathEqualTo("/seoji/SearchApi.do")
@@ -138,5 +140,54 @@ class InternalBookControllerTest(
             .expectBody()
             .jsonPath("$[0].type")
             .isEqualTo("NEW_BOOKS")
+
+        awaitRunsFinished()
+    }
+
+    @Test
+    fun `하이픈이 있는 ISBN 시드도 저장된다`() {
+        wireMock.stubFor(
+            get(path).willReturn(jsonBody(fixture("isbn-9788999990021.json"))),
+        )
+
+        client
+            .post()
+            .uri("/internal/collect-runs")
+            .bodyValue(mapOf("type" to "SEED_ISBN", "isbns" to listOf("978-89-9999-002-1")))
+            .exchange()
+            .expectStatus()
+            .isAccepted
+        awaitRunsFinished()
+
+        assertEquals("느리게 읽기", runBlocking { books.findByIsbn("9788999990021") }!!.title)
+    }
+
+    @Test
+    fun `검증숫자가 틀린 ISBN 시드는 400 INVALID_ISBN`() {
+        client
+            .post()
+            .uri("/internal/collect-runs")
+            .bodyValue(mapOf("type" to "SEED_ISBN", "isbns" to listOf("9788999990021", "9788999990022")))
+            .exchange()
+            .expectStatus()
+            .isBadRequest
+            .expectBody()
+            .jsonPath("$.code")
+            .isEqualTo("INVALID_ISBN")
+    }
+
+    /** 백그라운드 수집이 다른 테스트에 번지지 않도록 끝날 때까지 기다린다. */
+    private fun awaitRunsFinished() {
+        val deadline = System.currentTimeMillis() + AWAIT_MS
+        while (runBlocking { runs.recent(RUN_LIMIT) }.any { it.status == "RUNNING" }) {
+            check(System.currentTimeMillis() < deadline) { "수집이 끝나지 않았다" }
+            Thread.sleep(POLL_MS)
+        }
+    }
+
+    private companion object {
+        const val AWAIT_MS = 15_000L
+        const val POLL_MS = 20L
+        const val RUN_LIMIT = 20
     }
 }

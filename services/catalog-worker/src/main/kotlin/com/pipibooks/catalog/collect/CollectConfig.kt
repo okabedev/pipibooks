@@ -2,10 +2,12 @@ package com.pipibooks.catalog.collect
 
 import com.pipibooks.catalog.nlk.NlkProperties
 import com.pipibooks.catalog.nlk.NlkRateLimiter
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.DisposableBean
 import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.boot.context.properties.EnableConfigurationProperties
@@ -26,7 +28,11 @@ data class CollectProperties(
 class ApplicationScope :
     CoroutineScope,
     DisposableBean {
-    override val coroutineContext: CoroutineContext = SupervisorJob() + Dispatchers.Default
+    override val coroutineContext: CoroutineContext =
+        SupervisorJob() + Dispatchers.Default +
+            CoroutineExceptionHandler { _, e -> log.error("백그라운드 수집 오류", e) }
+
+    private val log = LoggerFactory.getLogger(ApplicationScope::class.java)
 
     override fun destroy() = cancel()
 }

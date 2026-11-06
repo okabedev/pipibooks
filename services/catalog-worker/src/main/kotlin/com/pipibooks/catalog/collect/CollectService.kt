@@ -5,9 +5,12 @@ import com.pipibooks.catalog.nlk.NlkAuthException
 import com.pipibooks.catalog.nlk.NlkClient
 import com.pipibooks.catalog.nlk.NlkPage
 import com.pipibooks.catalog.nlk.NlkProperties
+import com.pipibooks.catalog.nlk.NlkRecord
 import com.pipibooks.catalog.nlk.Priority
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import tools.jackson.databind.json.JsonMapper
@@ -50,16 +53,14 @@ class CollectService(
     suspend fun runNow(request: CollectRequest): Long = start(request).also { execute(it, request) }
 
     private suspend fun start(request: CollectRequest): Long {
-        val params = mapper.writeValueAsString(paramsOf(request))
-        return runs.start(request.type, params)
+        val params =
+            when (request.type) {
+                CollectType.NEW_BOOKS -> window().let { mapOf("from" to "${it.first()}", "to" to "${it.last()}") }
+                CollectType.SEED_ISBN -> mapOf("isbns" to request.isbns)
+                CollectType.SEED_KEYWORD -> mapOf("keyword" to request.keyword)
+            }
+        return runs.start(request.type, mapper.writeValueAsString(params))
     }
-
-    private fun paramsOf(request: CollectRequest): Map<String, Any?> =
-        when (request.type) {
-            CollectType.NEW_BOOKS -> window().let { mapOf("from" to "${it.first()}", "to" to "${it.last()}") }
-            CollectType.SEED_ISBN -> mapOf("isbns" to request.isbns)
-            CollectType.SEED_KEYWORD -> mapOf("keyword" to request.keyword)
-        }
 
     /** 오늘(KST)과 그 전 `window-days - 1`일, 오래된 날부터. */
     private fun window(): List<LocalDate> {
@@ -82,7 +83,25 @@ class CollectService(
             runType(request, tally)
         } catch (e: NlkAuthException) {
             tally.failures += "인증 실패로 중단: ${e.message}"
+        } catch (e: CancellationException) {
+            tally.failures += "취소됨"
+            throw e
+        } catch (
+            @Suppress("TooGenericExceptionCaught") e: Exception,
+        ) {
+            log.error("수집 중 예상치 못한 오류 runId={}", runId, e)
+            tally.failures += "예상치 못한 오류: ${e.message}"
+        } finally {
+            // 취소돼도 이력이 RUNNING으로 남지 않게 한다.
+            withContext(NonCancellable) { finishRun(runId, tally) }
         }
+        return tally.failures.isEmpty()
+    }
+
+    private suspend fun finishRun(
+        runId: Long,
+        tally: Tally,
+    ) {
         val ok = tally.failures.isEmpty()
         runs.finish(
             runId,
@@ -91,15 +110,7 @@ class CollectService(
             tally.saved,
             tally.failures.joinToString("; ").ifEmpty { null },
         )
-        log.info(
-            "수집 종료 runId={} type={} ok={} fetched={} saved={}",
-            runId,
-            request.type,
-            ok,
-            tally.fetched,
-            tally.saved,
-        )
-        return ok
+        log.info("수집 종료 runId={} ok={} fetched={} saved={}", runId, ok, tally.fetched, tally.saved)
     }
 
     private suspend fun runType(
@@ -110,7 +121,10 @@ class CollectService(
             CollectType.NEW_BOOKS -> window().forEach { day -> guarded(tally, "$day") { collectDay(day, tally) } }
             CollectType.SEED_ISBN ->
                 request.isbns.orEmpty().forEach { isbn ->
-                    guarded(tally, isbn) { seedIsbn(isbn, tally) }
+                    guarded(tally, isbn) {
+                        val record = client.byIsbn(isbn, Priority.BATCH)
+                        if (record == null) log.warn("국립중앙도서관에 없는 ISBN: {}", isbn) else ingestOne(record, tally)
+                    }
                 }
             CollectType.SEED_KEYWORD -> {
                 val keyword = request.keyword.orEmpty()
@@ -150,17 +164,24 @@ class CollectService(
         }
     }
 
-    private suspend fun seedIsbn(
-        isbn: String,
+    /** 레코드 하나의 실패가 같은 페이지의 나머지를 막지 않게 한다. 인증 오류와 취소는 위로 던진다. */
+    private suspend fun ingestOne(
+        record: NlkRecord,
         tally: Tally,
     ) {
-        val record = client.byIsbn(isbn, Priority.BATCH)
-        if (record == null) {
-            log.warn("국립중앙도서관에 없는 ISBN: {}", isbn)
-            return
-        }
         tally.fetched++
-        if (ingestor.ingest(record) != null) tally.saved++
+        try {
+            if (ingestor.ingest(record) != null) tally.saved++
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: NlkAuthException) {
+            throw e
+        } catch (
+            @Suppress("TooGenericExceptionCaught") e: Exception,
+        ) {
+            log.error("도서 저장 실패 isbn={}", record.eaIsbn, e)
+            tally.failures += "${record.eaIsbn}: ${e.message}"
+        }
     }
 
     private suspend fun forEachPage(
@@ -173,10 +194,7 @@ class CollectService(
         while (page <= maxPages) {
             val result = fetch(page)
             if (page == 1) onFirst(result.totalCount)
-            result.records.forEach { record ->
-                tally.fetched++
-                if (ingestor.ingest(record) != null) tally.saved++
-            }
+            result.records.forEach { record -> ingestOne(record, tally) }
             if (result.records.isEmpty() || page * nlk.pageSize >= result.totalCount) return
             page++
         }

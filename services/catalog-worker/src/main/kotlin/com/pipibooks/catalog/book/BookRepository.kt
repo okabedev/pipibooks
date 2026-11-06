@@ -91,11 +91,15 @@ class BookRepository(
         )
     }
 
-    /** 표지 확인에 실패했을 때 표지를 비운다. */
-    suspend fun clearCover(bookId: Long) {
+    /** 확인을 통과한 표지 URL만 `cover_url`에 채운다. 원본이 바뀌면 upsert가 `cover_url`을 비워 둔다. */
+    suspend fun setVerifiedCover(
+        bookId: Long,
+        url: String,
+    ) {
         db
-            .sql("UPDATE catalog.book SET cover_url = NULL WHERE id = :id")
+            .sql("UPDATE catalog.book SET cover_url = :url WHERE id = :id")
             .bind("id", bookId)
+            .bind("url", url)
             .fetch()
             .rowsUpdated()
             .awaitSingle()
@@ -144,14 +148,14 @@ class BookRepository(
                 "table_of_contents, ea_add_code, form, ebook_yn, set_isbn, fetched_at"
         const val INSERT =
             "INSERT INTO catalog.book ($COLUMNS) VALUES " +
-                "(:id, :isbn, :title, :author, :publisher, :predate, :kdc, :pages, :cover, :cover, :intro, :toc, " +
+                "(:id, :isbn, :title, :author, :publisher, :predate, :kdc, :pages, NULL, :cover, :intro, :toc, " +
                 ":eaAdd, :form, " +
                 ":ebook, :setIsbn, :fetchedAt) " +
                 "ON CONFLICT (isbn13) DO UPDATE SET title = EXCLUDED.title, author = EXCLUDED.author, " +
                 "publisher = EXCLUDED.publisher, publish_predate = EXCLUDED.publish_predate, kdc = EXCLUDED.kdc, " +
                 "pages = EXCLUDED.pages, " +
                 "cover_url = CASE WHEN catalog.book.cover_source_url IS NOT DISTINCT FROM EXCLUDED.cover_source_url " +
-                "THEN catalog.book.cover_url ELSE EXCLUDED.cover_url END, " +
+                "THEN catalog.book.cover_url ELSE NULL END, " +
                 "cover_source_url = EXCLUDED.cover_source_url, introduction = EXCLUDED.introduction, " +
                 "table_of_contents = EXCLUDED.table_of_contents, ea_add_code = EXCLUDED.ea_add_code, " +
                 "form = EXCLUDED.form, ebook_yn = EXCLUDED.ebook_yn, set_isbn = EXCLUDED.set_isbn, " +
@@ -159,7 +163,7 @@ class BookRepository(
         const val UPDATE =
             "UPDATE catalog.book SET title = :title, author = :author, publisher = :publisher, " +
                 "publish_predate = :predate, kdc = :kdc, pages = :pages, " +
-                "cover_url = CASE WHEN cover_source_url IS NOT DISTINCT FROM :cover THEN cover_url ELSE :cover END, " +
+                "cover_url = CASE WHEN cover_source_url IS NOT DISTINCT FROM :cover THEN cover_url ELSE NULL END, " +
                 "cover_source_url = :cover, introduction = :intro, " +
                 "table_of_contents = :toc, " +
                 "ea_add_code = :eaAdd, form = :form, ebook_yn = :ebook, set_isbn = :setIsbn, fetched_at = :fetchedAt " +

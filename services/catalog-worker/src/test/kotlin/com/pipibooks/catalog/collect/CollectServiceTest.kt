@@ -9,6 +9,10 @@ import com.pipibooks.catalog.book.BookRepository
 import com.pipibooks.catalog.support.NlkTestSupport
 import com.pipibooks.catalog.support.NlkWireMock
 import com.pipibooks.catalog.support.jsonBody
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
@@ -106,4 +110,23 @@ class CollectServiceTest(
 
             assertNull(books.findByIsbn("9788999990045")!!.coverUrl)
         }
+
+    @Test
+    fun `취소돼도 실행 이력은 RUNNING으로 남지 않는다`() =
+        runBlocking {
+            wireMock.stubFor(
+                get(path).willReturn(jsonBody(fixture("empty.json")).withFixedDelay(CANCEL_DELAY_MS)),
+            )
+
+            val job = launch(Dispatchers.Default) { service.runNow(CollectRequest(CollectType.NEW_BOOKS)) }
+            while (runs.recent(1).isEmpty()) delay(POLL_MS)
+            job.cancelAndJoin()
+
+            assertEquals("FAILED", runs.recent(1).single().status)
+        }
+
+    private companion object {
+        const val CANCEL_DELAY_MS = 3000
+        const val POLL_MS = 20L
+    }
 }
