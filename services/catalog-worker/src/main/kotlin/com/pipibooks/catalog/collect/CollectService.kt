@@ -71,6 +71,7 @@ class CollectService(
     private class Tally {
         var fetched = 0
         var saved = 0
+        var drafts = 0
         val failures = mutableListOf<String>()
     }
 
@@ -108,9 +109,17 @@ class CollectService(
             if (ok) "SUCCEEDED" else "FAILED",
             tally.fetched,
             tally.saved,
+            tally.drafts,
             tally.failures.joinToString("; ").ifEmpty { null },
         )
-        log.info("수집 종료 runId={} ok={} fetched={} saved={}", runId, ok, tally.fetched, tally.saved)
+        log.info(
+            "수집 종료 runId={} ok={} fetched={} saved={} drafts={}",
+            runId,
+            ok,
+            tally.fetched,
+            tally.saved,
+            tally.drafts,
+        )
     }
 
     private suspend fun runType(
@@ -172,7 +181,10 @@ class CollectService(
     ) {
         tally.fetched++
         try {
-            if (ingestor.ingest(record) != null) tally.saved++
+            ingestor.ingest(record)?.let {
+                tally.saved++
+                if (it.draftCreated) tally.drafts++
+            }
         } catch (e: CancellationException) {
             throw e
         } catch (e: NlkAuthException) {

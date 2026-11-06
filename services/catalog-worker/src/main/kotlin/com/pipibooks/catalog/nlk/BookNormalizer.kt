@@ -99,8 +99,9 @@ object BookNormalizer {
         val text = clean(s) ?: return null
         val names =
             if (text.contains(':')) {
-                text.split(';').mapNotNull { segment ->
-                    if (segment.contains(':')) clean(segment.substringAfter(':')) else stripRoles(segment.trim())
+                text.split(';').flatMap { segment ->
+                    val body = if (segment.contains(':')) segment.substringAfter(':') else segment
+                    body.split(',').map { stripRoles(it.trim()) }
                 }
             } else {
                 text.split(';', ',').map { stripRoles(it.trim()) }

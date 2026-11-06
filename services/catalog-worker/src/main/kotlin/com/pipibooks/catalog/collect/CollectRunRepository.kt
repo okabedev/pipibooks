@@ -50,16 +50,19 @@ class CollectRunRepository(
         status: String,
         fetched: Int,
         saved: Int,
+        drafts: Int,
         error: String?,
     ) {
         db
             .sql(
                 "UPDATE catalog.collect_run SET status = :status, fetched_count = :fetched, saved_count = :saved, " +
+                    "draft_count = :drafts, " +
                     "error = :error, finished_at = :finishedAt WHERE id = :id",
             ).bind("id", id)
             .bind("status", status)
             .bind("fetched", fetched)
             .bind("saved", saved)
+            .bind("drafts", drafts)
             .bindNullable("error", error)
             .bind("finishedAt", now())
             .fetch()

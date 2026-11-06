@@ -37,7 +37,10 @@ class CollectRecordFailureTest(
                 override suspend fun onUpsert(
                     book: Book,
                     result: UpsertResult,
-                ) = check(book.isbn13 != "9788912345679") { "처리 실패 시뮬레이션" }
+                ): Boolean {
+                    check(book.isbn13 != "9788912345679") { "처리 실패 시뮬레이션" }
+                    return false
+                }
             }
     }
 
