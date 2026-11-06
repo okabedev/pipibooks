@@ -1,6 +1,6 @@
 CREATE TABLE catalog.card_draft (
     id                bigint       PRIMARY KEY,
-    book_id           bigint       NOT NULL REFERENCES catalog.book (id) ON DELETE CASCADE,
+    book_id           bigint       NOT NULL REFERENCES catalog.book (id),
     slides            jsonb        NOT NULL,
     generator_name    varchar(64)  NOT NULL,
     generator_version int          NOT NULL,

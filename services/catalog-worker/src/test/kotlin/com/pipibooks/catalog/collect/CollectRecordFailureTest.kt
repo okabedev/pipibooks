@@ -62,5 +62,14 @@ class CollectRecordFailureTest(
             val run = runs.recent(10).single { it.id == runId }
             assertEquals("FAILED", run.status)
             assertTrue(run.error!!.contains("978-89-123-4567-9"), run.error)
+            // 리스너가 실패해도 도서는 저장됐으므로 saved에 센다.
+            val stored =
+                db
+                    .sql("SELECT count(*) AS n FROM catalog.book")
+                    .map { r -> r.get("n", Long::class.javaObjectType)!!.toInt() }
+                    .one()
+                    .block()
+            assertEquals(stored, run.savedCount)
+            assertEquals(run.fetchedCount, run.savedCount)
         }
 }

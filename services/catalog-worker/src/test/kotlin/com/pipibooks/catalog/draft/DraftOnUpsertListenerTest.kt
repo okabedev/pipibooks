@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import tools.jackson.module.kotlin.jacksonObjectMapper
+import java.time.LocalDate
 
 @SpringBootTest
 class DraftOnUpsertListenerTest(
@@ -26,11 +27,14 @@ class DraftOnUpsertListenerTest(
         intro: String? = this.intro,
         title: String = "조용한 숲",
         cover: String? = "https://cdn.example.com/c.jpg",
+        predate: LocalDate? = null,
     ) = NormalizedBook(
         isbn13 = "9788912345679",
         title = title,
         author = "홍길동",
         kdc = "8",
+        publishPredate = predate,
+        pages = 240,
         introduction = intro,
         coverUrl = cover,
         eaAddCode = "03810",
@@ -146,5 +150,20 @@ class DraftOnUpsertListenerTest(
             assertEquals(listOf("COVER", "HOOK", "INFO", "KEYWORDS", "FOR_WHOM"), types)
             val back = jacksonObjectMapper().readValue(json, Array<SlidePayload>::class.java)
             assertEquals("https://cdn.example.com/c.jpg", (back[0] as SlidePayload.Cover).coverUrl)
+        }
+
+    @Test
+    fun `publishedOn은 ISO 문자열로 저장되고 다섯 슬라이드가 원본과 같게 읽힌다`() =
+        runBlocking {
+            val (book, _) = upsert(normalized(predate = LocalDate.of(2026, 11, 5)))
+            val json = drafts.findAll(book.id).single().slidesJson
+            val mapper = jacksonObjectMapper()
+            val info = mapper.readTree(json).get(2)
+            assertTrue(info.get("publishedOn").isString)
+            assertEquals("2026-11-05", info.get("publishedOn").asString())
+
+            val back = mapper.readValue(json, Array<SlidePayload>::class.java).toList()
+            assertEquals(generator.generate(book), back)
+            assertEquals(5, back.size)
         }
 }

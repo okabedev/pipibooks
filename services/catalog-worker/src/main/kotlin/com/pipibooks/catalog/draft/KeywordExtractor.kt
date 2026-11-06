@@ -2,14 +2,15 @@ package com.pipibooks.catalog.draft
 
 /**
  * 키워드 후보를 목차 항목의 머리말, 소개 명사 빈도, 제목 단어 순으로 모아 중복 없이 최대 [MAX]개를 돌려준다.
- * 2자 이상 한글 단어만 쓰고 불용어는 뺀다. 후보가 3개 미만이면 있는 만큼만 돌려주고(빈 목록 가능),
+ * 2자 이상 한글 단어만 쓰고, 끝의 조사를 뗀 뒤(떼고도 2자 이상 남을 때만, '이'는 명사 끝일 수 있어 떼지 않는다)
+ * 2자 이상이고 불용어(조사를 뗀 형태 기준)가 아닌 것만 남긴다. 후보가 3개 미만이면 있는 만큼만 돌려주고(빈 목록 가능),
  * 호출하는 쪽이 슬라이드 생략 여부를 정한다.
  */
 object KeywordExtractor {
     const val MAX = 6
     private val word = Regex("[가-힣]{2,}")
     private val tocSeparator = Regex("[\\n\\r;]+|\\s--\\s|\\s\\d{1,2}\\.\\s")
-    private const val PARTICLES = "은는이가을를의에도로와과들"
+    private const val PARTICLES = "은는가을를의에도로와과들"
     private const val MIN_STEM = 3
     private val longParticles = listOf("에서", "에게", "으로", "마다", "까지", "부터", "처럼", "보다")
     private val stopwords =
@@ -37,9 +38,7 @@ object KeywordExtractor {
             "이것",
             "저자",
             "지음",
-            "이야기를",
-            "책은",
-            "책이",
+            "이야기",
             "것이다",
             "같은",
             "다른",
@@ -110,13 +109,12 @@ object KeywordExtractor {
         return counts.entries.sortedByDescending { it.value }.map { it.key }
     }
 
-    /** 끝의 조사 한 글자를 떼는 단순 규칙. 세 글자 이상일 때만 적용한다. */
+    /** 끝의 조사를 떼는 단순 규칙. 떼고 나서 두 글자 이상 남을 때만 적용한다('이'는 떼지 않는다). */
     private fun stem(w: String): String {
         val suffix = longParticles.firstOrNull { w.length > it.length + 1 && w.endsWith(it) }
         return when {
             suffix != null -> w.dropLast(suffix.length)
             w.length >= MIN_STEM && w.last() in PARTICLES -> w.dropLast(1)
-            w.length == 2 && w.last() == '의' -> w.dropLast(1)
             else -> w
         }
     }
