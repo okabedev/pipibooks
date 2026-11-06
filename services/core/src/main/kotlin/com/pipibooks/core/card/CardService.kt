@@ -3,13 +3,13 @@ package com.pipibooks.core.card
 import com.pipibooks.common.ApiException
 import com.pipibooks.common.Tsid
 import com.pipibooks.common.slide.SlidePayload
+import jakarta.persistence.EntityManager
 import org.slf4j.LoggerFactory
 import org.springframework.dao.DataAccessException
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.support.TransactionTemplate
-import tools.jackson.core.JacksonException
 import tools.jackson.databind.json.JsonMapper
 import tools.jackson.module.kotlin.readValue
 import java.sql.SQLException
@@ -23,18 +23,21 @@ class CardService(
     private val cursor: SyncCursorStore,
     private val mapper: JsonMapper,
     private val tx: TransactionTemplate,
+    private val em: EntityManager,
 ) {
     /**
      * 커서 이후의 초안을 읽어 자동 발행 가능한 것으로 카드를 만든다. 만든 카드 수를 돌려준다.
-     * 배치마다 카드 생성과 커서 갱신이 한 트랜잭션이다. catalog 테이블이 아직 없으면(첫 기동 순서) 0을 돌려주고 다음 주기에 다시 시도한다.
+     * 초안마다 트랜잭션을 따로 쓴다(카드·슬라이드 생성과 커서 갱신이 함께 커밋). 처리에 실패한 초안은
+     * 오류를 남기고 커서만 넘겨, 한 건이 이후 초안을 막지 않게 한다.
+     * catalog 테이블이 아직 없으면(첫 기동 순서) 지금까지의 수를 돌려주고 다음 주기에 다시 시도한다.
      */
     fun syncDrafts(): Int {
         var created = 0
         try {
             while (true) {
-                val (read, made) = tx.execute { syncBatch() }
-                created += made
-                if (read < BATCH_SIZE) break
+                val drafts = reader.readAfter(cursor.get(CURSOR_NAME), BATCH_SIZE)
+                created += drafts.count { syncOne(it) }
+                if (drafts.size < BATCH_SIZE) break
             }
         } catch (e: DataAccessException) {
             if (!isMissingTable(e)) throw e
@@ -43,22 +46,20 @@ class CardService(
         return created
     }
 
-    // 초안은 id 순으로 처리하고, 책당 카드는 UNIQUE(book_id)로 하나만 만든다. 커서는 자동 발행 불가 초안도 지나간다.
-    private fun syncBatch(): Pair<Int, Int> {
-        val drafts = reader.readAfter(cursor.get(CURSOR_NAME), BATCH_SIZE)
-        if (drafts.isEmpty()) return 0 to 0
-        val now = Instant.now()
-        var made = 0
-        for (draft in drafts.filter { it.autoPublishable }) {
-            try {
-                if (createCard(draft, CardSource.AUTO, now) != null) made++
-            } catch (e: JacksonException) {
-                log.error("초안 {}의 슬라이드 JSON이 잘못돼 건너뛴다", draft.id, e)
-            }
+    // 초안은 id 순으로 처리하고, 책당 카드는 UNIQUE(book_id)로 하나만 만든다. 커서는 자동 발행 불가·실패 초안도 지나간다.
+    @Suppress("TooGenericExceptionCaught") // 한 초안의 어떤 실패도 동기화 전체를 막지 않는다
+    private fun syncOne(draft: CardDraft): Boolean =
+        try {
+            tx.execute {
+                val made = draft.autoPublishable && createCard(draft, CardSource.AUTO, Instant.now()) != null
+                cursor.set(CURSOR_NAME, draft.id)
+                made
+            } == true
+        } catch (e: RuntimeException) {
+            log.error("초안 {}(책 {}) 처리에 실패해 건너뛴다", draft.id, draft.bookId, e)
+            tx.executeWithoutResult { cursor.set(CURSOR_NAME, draft.id) }
+            false
         }
-        cursor.set(CURSOR_NAME, drafts.last().id)
-        return drafts.size to made
-    }
 
     /** 초안을 `CURATED`·`PUBLISHED` 카드로 발행한다(자동 발행 불가 초안도 가능). 만든 카드 ID를 돌려준다. */
     @Transactional
@@ -99,12 +100,18 @@ class CardService(
         cardId: Long,
         payloads: List<SlidePayload>,
     ) {
-        val rows =
-            payloads.mapIndexed { index, slide ->
-                val json = mapper.writeValueAsString(slide)
-                CardSlideEntity(Tsid.next(), cardId, index, mapper.readTree(json).get("type").asString(), json)
-            }
-        slides.saveAll(rows)
+        payloads.forEachIndexed { index, slide ->
+            val json = mapper.writeValueAsString(slide)
+            val type =
+                mapper
+                    .readTree(json)
+                    .get("type")
+                    ?.takeIf { it.isString }
+                    ?.asString()
+                    ?: throw IllegalArgumentException("슬라이드에 type이 없다")
+            // 새 ID이므로 save(merge의 선행 SELECT) 대신 persist한다
+            em.persist(CardSlideEntity(Tsid.next(), cardId, index, type, json))
+        }
     }
 
     private fun isMissingTable(e: Throwable): Boolean =

@@ -97,6 +97,26 @@ class CardServiceTest(
     }
 
     @Test
+    fun `처리 중 실패한 초안은 건너뛰고 다음 초안은 발행한다`() {
+        val bad = CatalogTestData.insertBook("9780000000020")
+        val good = CatalogTestData.insertBook("9780000000021")
+        CatalogTestData.insertDraft(bad, CatalogTestData.coverSlides("BOOM"))
+        val goodDraft = CatalogTestData.insertDraft(good)
+        // 슬라이드 INSERT가 DB 제약으로 실패하게 만든다(JSON 파싱 오류가 아닌 처리 중 실패)
+        jdbc.execute("ALTER TABLE core.card_slide ADD CONSTRAINT tmp_fail CHECK (payload::text NOT LIKE '%BOOM%')")
+        try {
+            assertEquals(1, service.syncDrafts())
+        } finally {
+            jdbc.execute("ALTER TABLE core.card_slide DROP CONSTRAINT tmp_fail")
+        }
+
+        assertEquals(0, cards(bad).size)
+        assertEquals(1, cards(good).size)
+        val cursor = jdbc.queryForObject("SELECT last_id FROM core.sync_cursor", Long::class.java)
+        assertEquals(goodDraft, cursor)
+    }
+
+    @Test
     fun `생성된 지 60초가 지나지 않은 초안은 읽지 않는다`() {
         val bookId = CatalogTestData.insertBook("9780000000007")
         CatalogTestData.insertDraft(bookId, createdAt = Instant.now())

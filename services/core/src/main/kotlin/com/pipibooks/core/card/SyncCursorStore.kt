@@ -4,11 +4,20 @@ import org.springframework.jdbc.core.simple.JdbcClient
 import org.springframework.stereotype.Component
 
 /** `core.sync_cursor`: 동기화 작업별로 마지막으로 처리한 원본 ID를 저장한다. */
+interface SyncCursorStore {
+    fun get(name: String): Long
+
+    fun set(
+        name: String,
+        lastId: Long,
+    )
+}
+
 @Component
-class SyncCursorStore(
+class JdbcSyncCursorStore(
     private val jdbc: JdbcClient,
-) {
-    fun get(name: String): Long =
+) : SyncCursorStore {
+    override fun get(name: String): Long =
         jdbc
             .sql("SELECT last_id FROM core.sync_cursor WHERE name = :name")
             .param("name", name)
@@ -16,7 +25,7 @@ class SyncCursorStore(
             .optional()
             .orElse(0L)
 
-    fun set(
+    override fun set(
         name: String,
         lastId: Long,
     ) {

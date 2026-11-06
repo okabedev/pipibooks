@@ -2,7 +2,6 @@ package com.pipibooks.core.card
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import org.mockito.Mockito.mock
 import org.springframework.dao.DataAccessResourceFailureException
 import org.springframework.jdbc.BadSqlGrammarException
 import org.springframework.transaction.PlatformTransactionManager
@@ -10,6 +9,7 @@ import org.springframework.transaction.TransactionDefinition
 import org.springframework.transaction.support.SimpleTransactionStatus
 import org.springframework.transaction.support.TransactionTemplate
 import tools.jackson.module.kotlin.jacksonMapperBuilder
+import java.lang.reflect.Proxy
 import java.sql.SQLException
 
 class CardSyncUnavailableTest {
@@ -24,14 +24,29 @@ class CardSyncUnavailableTest {
             },
         )
 
+    // 읽기 단계에서 실패하므로 다른 협력 객체는 호출되지 않는다. 호출되면 바로 실패하는 대역을 쓴다.
+    private inline fun <reified T : Any> unused(): T =
+        Proxy.newProxyInstance(T::class.java.classLoader, arrayOf(T::class.java)) { _, method, _ ->
+            error("호출되면 안 된다: ${method.name}")
+        } as T
+
     private fun service(error: RuntimeException) =
         CardService(
             reader = StubReader(error),
-            cards = mock(CardRepository::class.java),
-            slides = mock(CardSlideRepository::class.java),
-            cursor = mock(SyncCursorStore::class.java),
+            cards = unused(),
+            slides = unused(),
+            cursor =
+                object : SyncCursorStore {
+                    override fun get(name: String) = 0L
+
+                    override fun set(
+                        name: String,
+                        lastId: Long,
+                    ) = error("호출되면 안 된다")
+                },
             mapper = jacksonMapperBuilder().build(),
             tx = noopTx,
+            em = unused(),
         )
 
     private class StubReader(
