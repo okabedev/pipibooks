@@ -66,8 +66,12 @@ abstract class NlkTestSupport : DbTestSupport() {
         }
     }
 
+    /**
+     * 실제 녹화 응답의 표지 호스트(`https://nl.go.kr/`)는 연결이 바로 거부되는 주소로 바꿔,
+     * 테스트가 외부 네트워크를 쓰지 않고 표지 확인 실패 경로를 타게 한다.
+     */
     protected fun fixture(name: String): String {
         val resource = checkNotNull(javaClass.getResource("/nlk/$name")) { "픽스처 없음: $name" }
-        return resource.readText()
+        return resource.readText().replace("https://nl.go.kr/", "http://localhost:1/")
     }
 }

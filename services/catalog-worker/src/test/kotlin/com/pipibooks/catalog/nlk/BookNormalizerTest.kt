@@ -66,10 +66,53 @@ class BookNormalizerTest {
         assertEquals("https://cdn.example.com/c.jpg", book!!.coverUrl)
     }
 
+    private fun author(raw: String) = BookNormalizer.normalize(record().copy(author = raw))!!.author
+
     @Test
     fun `저자 역할어를 정리한다`() {
-        val book = BookNormalizer.normalize(record().copy(author = "김하늘 지음 ; 이바다 옮김"))
-        assertEquals("김하늘, 이바다", book!!.author)
+        assertEquals("김하늘, 이바다", author("김하늘 지음 ; 이바다 옮김"))
+        assertEquals("류윤환", author("류윤환 지음"))
+        assertEquals("이현주", author("이현주 저"))
+        assertEquals("엔텔러키", author("엔텔러키 [편]"))
+        assertEquals(
+            "Park Kwon, Ohdee Lee, translation by K.H. Yoo",
+            author("Park Kwon, Ohdee Lee ;translation by K.H. Yoo"),
+        )
+    }
+
+    @Test
+    fun `역할 콜론 이름 형식은 역할을 떼고 이름만 원래 순서로 잇는다`() {
+        assertEquals("민병훈", author("저자 : 민병훈"))
+        assertEquals(
+            "윌리엄 해즐릿, 아이보리잉크 편집부, TR 클럽",
+            author("저자 : 윌리엄 해즐릿;편집자 : 아이보리잉크 편집부;역자 : TR 클럽;"),
+        )
+        assertEquals("임수현, 정인하", author("저자 : 임수현;삽화가(그림작가) : 정인하"))
+        assertEquals("박대건, AI 한글연구팀", author("저자 : 박대건;AI 저자 : AI 한글연구팀"))
+    }
+
+    @Test
+    fun `콜론 앞뒤 공백이 없어도 역할을 뗀다`() {
+        assertEquals("오병곤", author("사진작가: 오병곤"))
+        assertEquals("고재봉, 김상태,천영기,류제혁", author("집필: 고재봉 ;사진: 김상태,천영기,류제혁"))
+    }
+
+    @Test
+    fun `역할이 달라도 이름이 같으면 한 번만 쓴다`() {
+        assertEquals("김도훈, 김연우", author("저자 : 김도훈;저자 : 김연우;역자 : 김도훈;"))
+    }
+
+    @Test
+    fun `KDC가 비면 SUBJECT 대분류를 쓴다`() {
+        assertEquals("8", BookNormalizer.normalize(record().copy(kdc = "", subject = "8"))!!.kdc)
+        assertEquals("8", BookNormalizer.normalize(record().copy(kdc = null, subject = " 8 "))!!.kdc)
+    }
+
+    @Test
+    fun `KDC가 있으면 SUBJECT보다 우선하고 한 자리 숫자가 아닌 SUBJECT는 쓰지 않는다`() {
+        assertEquals("813.7", BookNormalizer.normalize(record().copy(kdc = "813.7", subject = "8"))!!.kdc)
+        assertNull(BookNormalizer.normalize(record().copy(kdc = "", subject = "문학"))!!.kdc)
+        assertNull(BookNormalizer.normalize(record().copy(kdc = "", subject = "81"))!!.kdc)
     }
 
     @Test

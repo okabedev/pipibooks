@@ -18,7 +18,7 @@ nlk:
   base-url: https://www.nl.go.kr
   cert-key: ${NLK_CERT_KEY:}
   permits-per-second: 1.0
-  page-size: 50
+  page-size: 500
 collect:
   window-days: 14
 healthcheck:

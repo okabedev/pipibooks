@@ -49,7 +49,8 @@ class CollectRecordFailureTest(
             NlkWireMock.server.stubFor(
                 get(path)
                     .withQueryParam("start_publish_date", equalTo("20261105"))
-                    .willReturn(jsonBody(fixture("new-books-20261105.json"))),
+                    .withQueryParam("page_no", equalTo("1"))
+                    .willReturn(jsonBody(fixture("synthetic-new-books-hyphen-isbn.json"))),
             )
 
             val runId = service.runNow(CollectRequest(CollectType.NEW_BOOKS))

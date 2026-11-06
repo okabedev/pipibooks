@@ -139,8 +139,9 @@ class CollectService(
         day: LocalDate,
         tally: Tally,
     ) {
-        forEachPage(tally, { page -> client.byPublishDate(day, page, Priority.BATCH) }) { total ->
-            if (total > DAILY_WARN) log.warn("{} 발행예정 도서가 {}건으로 500건을 넘는다. 일부가 누락될 수 있다", day, total)
+        val (received, total) = forEachPage(tally, { page -> client.byPublishDate(day, page, Priority.BATCH) })
+        if (received < total) {
+            log.warn("{} 발행예정 도서 받은 건수({})가 TOTAL_COUNT({})보다 적다. 일부가 누락됐을 수 있다", day, received, total)
         }
     }
 
@@ -188,20 +189,23 @@ class CollectService(
         tally: Tally,
         fetch: suspend (Int) -> NlkPage,
         maxPages: Int = Int.MAX_VALUE,
-        onFirst: (Int) -> Unit = {},
-    ) {
+    ): Pair<Int, Int> {
         var page = 1
+        var received = 0
+        var total = 0
         while (page <= maxPages) {
             val result = fetch(page)
-            if (page == 1) onFirst(result.totalCount)
+            if (page == 1) total = result.totalCount
+            received += result.records.size
+            // 같은 ISBN이 쪽 안팎에서 겹쳐도 upsert라 무해하다.
             result.records.forEach { record -> ingestOne(record, tally) }
-            if (result.records.isEmpty() || page * nlk.pageSize >= result.totalCount) return
+            if (result.records.isEmpty() || page * nlk.pageSize >= result.totalCount) break
             page++
         }
+        return received to total
     }
 
     private companion object {
-        const val DAILY_WARN = 500
         const val SEED_MAX_PAGES = 20
     }
 }

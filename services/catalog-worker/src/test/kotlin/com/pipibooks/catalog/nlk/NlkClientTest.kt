@@ -50,21 +50,16 @@ class NlkClientTest {
         runBlocking {
             server.stubFor(get(path).willReturn(jsonBody(fixture("new-books-20261105.json"))))
             val page = client().byPublishDate(LocalDate.of(2026, 11, 5), 1)
-            assertEquals(2, page.totalCount)
-            assertEquals(
-                "9788912345679".length,
-                page.records
-                    .first()
-                    .eaIsbn!!
-                    .filter { it.isDigit() }
-                    .length,
-            )
+            assertEquals(1259, page.totalCount)
+            assertEquals(5, page.records.size)
+            assertEquals("9791143209269", page.records.first().eaIsbn)
+            assertEquals("8", page.records.first().subject)
             server.verify(
                 getRequestedFor(path)
                     .withQueryParam("start_publish_date", equalTo("20261105"))
                     .withQueryParam("end_publish_date", equalTo("20261105"))
                     .withQueryParam("page_no", equalTo("1"))
-                    .withQueryParam("page_size", equalTo("50"))
+                    .withQueryParam("page_size", equalTo("500"))
                     .withQueryParam("result_style", equalTo("json"))
                     .withQueryParam("cert_key", equalTo("test-key")),
             )
@@ -72,7 +67,7 @@ class NlkClientTest {
 
     @Test
     fun `시스템 오류는 3회 재시도 후 실패한다`() {
-        server.stubFor(get(path).willReturn(jsonBody(fixture("error-000.json"))))
+        server.stubFor(get(path).willReturn(jsonBody(fixture("synthetic-error-000.json"))))
         assertThrows<NlkUnavailableException> { runBlocking { client().byTitle("바다", 1) } }
         assertEquals(4, server.findAll(getRequestedFor(path)).size)
     }
@@ -89,10 +84,20 @@ class NlkClientTest {
         runBlocking {
             server.stubFor(get(path).willReturn(jsonBody(fixture("search-sea.json"))))
             val page = client().byTitle("바다 & 섬", 1)
-            assertEquals(1, page.records.size)
+            assertEquals(5, page.records.size)
             val request = server.findAll(getRequestedFor(path)).single()
             assertEquals("바다 & 섬", request.queryParameter("title").firstValue())
             assertTrue(request.url.contains("%26"), request.url)
+        }
+
+    @Test
+    fun `ISBN 조회는 하이픈을 허용하는 isbn 파라미터로 한 건을 찾는다`() =
+        runBlocking {
+            server.stubFor(get(path).willReturn(jsonBody(fixture("isbn-9791198128058.json"))))
+            val record = client().byIsbn("9791198128058")
+            assertEquals("바울의 삶 바울의 신학", record!!.title)
+            assertEquals("2", record.subject)
+            server.verify(getRequestedFor(path).withQueryParam("isbn", equalTo("9791198128058")))
         }
 
     @Test

@@ -53,18 +53,18 @@ class InternalBookControllerTest(
     fun `없는 도서는 국립중앙도서관에서 가져와 저장한다`() {
         wireMock.stubFor(
             get(path).willReturn(
-                jsonBody(fixture("isbn-9788999990021.json")),
+                jsonBody(fixture("isbn-9791198128058.json")),
             ),
         )
 
-        import("9788999990021")
+        import("9791198128058")
             .expectStatus()
             .isOk
             .expectBody()
             .jsonPath("$.bookId")
             .isNotEmpty
 
-        assertEquals("느리게 읽기", runBlocking { books.findByIsbn("9788999990021") }!!.title)
+        assertEquals("바울의 삶 바울의 신학", runBlocking { books.findByIsbn("9791198128058") }!!.title)
     }
 
     @Test
@@ -107,11 +107,11 @@ class InternalBookControllerTest(
             .isOk
             .expectBody()
             .jsonPath("$.totalCount")
-            .isEqualTo(1)
+            .isEqualTo(10583)
             .jsonPath("$.items[0].isbn13")
-            .isEqualTo("9788999990038")
+            .isEqualTo("9791196480974")
 
-        assertEquals(null, runBlocking { books.findByIsbn("9788999990038") })
+        assertEquals(null, runBlocking { books.findByIsbn("9791196480974") })
     }
 
     @Test
@@ -147,19 +147,19 @@ class InternalBookControllerTest(
     @Test
     fun `하이픈이 있는 ISBN 시드도 저장된다`() {
         wireMock.stubFor(
-            get(path).willReturn(jsonBody(fixture("isbn-9788999990021.json"))),
+            get(path).willReturn(jsonBody(fixture("isbn-9791198128058.json"))),
         )
 
         client
             .post()
             .uri("/internal/collect-runs")
-            .bodyValue(mapOf("type" to "SEED_ISBN", "isbns" to listOf("978-89-9999-002-1")))
+            .bodyValue(mapOf("type" to "SEED_ISBN", "isbns" to listOf("979-11-98128-05-8")))
             .exchange()
             .expectStatus()
             .isAccepted
         awaitRunsFinished()
 
-        assertEquals("느리게 읽기", runBlocking { books.findByIsbn("9788999990021") }!!.title)
+        assertEquals("바울의 삶 바울의 신학", runBlocking { books.findByIsbn("9791198128058") }!!.title)
     }
 
     @Test
