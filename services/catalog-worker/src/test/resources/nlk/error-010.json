@@ -1,1 +1,5 @@
-{ "RESULT": "ERROR", "ERR_CODE": "010", "ERR_MESSAGE": "인증키가 없습니다" }
+{
+  "RESULT": "ERROR",
+  "ERR_CODE": "010",
+  "ERR_MESSAGE": "인증키 정보가 없습니다."
+}
