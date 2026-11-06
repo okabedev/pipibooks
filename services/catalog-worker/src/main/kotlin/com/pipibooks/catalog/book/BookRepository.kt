@@ -23,6 +23,7 @@ data class Book(
     val kdc: String?,
     val pages: Int?,
     val coverUrl: String?,
+    val coverSourceUrl: String?,
     val introduction: String?,
     val tableOfContents: String?,
     val eaAddCode: String?,
@@ -86,7 +87,7 @@ class BookRepository(
             bookId = row.first,
             created = row.second,
             cardFieldsChanged = existing == null || existing.cardFieldsDiffer(b),
-            coverUrlChanged = existing?.coverUrl != b.coverUrl,
+            coverUrlChanged = existing?.coverSourceUrl != b.coverUrl,
         )
     }
 
@@ -107,7 +108,7 @@ class BookRepository(
             publishPredate != b.publishPredate ||
             kdc != b.kdc ||
             pages != b.pages ||
-            coverUrl != b.coverUrl ||
+            coverSourceUrl != b.coverUrl ||
             introduction != b.introduction ||
             tableOfContents != b.tableOfContents ||
             eaAddCode != b.eaAddCode ||
@@ -126,6 +127,7 @@ class BookRepository(
             kdc = get("kdc", String::class.java),
             pages = get("pages", Int::class.javaObjectType),
             coverUrl = get("cover_url", String::class.java),
+            coverSourceUrl = get("cover_source_url", String::class.java),
             introduction = get("introduction", String::class.java),
             tableOfContents = get("table_of_contents", String::class.java),
             eaAddCode = get("ea_add_code", String::class.java),
@@ -137,22 +139,28 @@ class BookRepository(
 
     private companion object {
         const val COLUMNS =
-            "id, isbn13, title, author, publisher, publish_predate, kdc, pages, cover_url, introduction, " +
+            "id, isbn13, title, author, publisher, publish_predate, kdc, pages, cover_url, " +
+                "cover_source_url, introduction, " +
                 "table_of_contents, ea_add_code, form, ebook_yn, set_isbn, fetched_at"
         const val INSERT =
             "INSERT INTO catalog.book ($COLUMNS) VALUES " +
-                "(:id, :isbn, :title, :author, :publisher, :predate, :kdc, :pages, :cover, :intro, :toc, " +
+                "(:id, :isbn, :title, :author, :publisher, :predate, :kdc, :pages, :cover, :cover, :intro, :toc, " +
                 ":eaAdd, :form, " +
                 ":ebook, :setIsbn, :fetchedAt) " +
                 "ON CONFLICT (isbn13) DO UPDATE SET title = EXCLUDED.title, author = EXCLUDED.author, " +
                 "publisher = EXCLUDED.publisher, publish_predate = EXCLUDED.publish_predate, kdc = EXCLUDED.kdc, " +
-                "pages = EXCLUDED.pages, cover_url = EXCLUDED.cover_url, introduction = EXCLUDED.introduction, " +
+                "pages = EXCLUDED.pages, " +
+                "cover_url = CASE WHEN catalog.book.cover_source_url IS NOT DISTINCT FROM EXCLUDED.cover_source_url " +
+                "THEN catalog.book.cover_url ELSE EXCLUDED.cover_url END, " +
+                "cover_source_url = EXCLUDED.cover_source_url, introduction = EXCLUDED.introduction, " +
                 "table_of_contents = EXCLUDED.table_of_contents, ea_add_code = EXCLUDED.ea_add_code, " +
                 "form = EXCLUDED.form, ebook_yn = EXCLUDED.ebook_yn, set_isbn = EXCLUDED.set_isbn, " +
                 "fetched_at = EXCLUDED.fetched_at RETURNING id, (xmax = 0) AS created"
         const val UPDATE =
             "UPDATE catalog.book SET title = :title, author = :author, publisher = :publisher, " +
-                "publish_predate = :predate, kdc = :kdc, pages = :pages, cover_url = :cover, introduction = :intro, " +
+                "publish_predate = :predate, kdc = :kdc, pages = :pages, " +
+                "cover_url = CASE WHEN cover_source_url IS NOT DISTINCT FROM :cover THEN cover_url ELSE :cover END, " +
+                "cover_source_url = :cover, introduction = :intro, " +
                 "table_of_contents = :toc, " +
                 "ea_add_code = :eaAdd, form = :form, ebook_yn = :ebook, set_isbn = :setIsbn, fetched_at = :fetchedAt " +
                 "WHERE isbn13 = :isbn RETURNING id, false AS created"

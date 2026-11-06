@@ -8,6 +8,7 @@ CREATE TABLE catalog.book (
     kdc               varchar(16),
     pages             int,
     cover_url         text,
+    cover_source_url  text,
     introduction      text,
     table_of_contents text,
     ea_add_code       varchar(5),

@@ -74,7 +74,7 @@ class NlkClientTest {
     fun `시스템 오류는 3회 재시도 후 실패한다`() {
         server.stubFor(get(path).willReturn(jsonBody(fixture("error-000.json"))))
         assertThrows<NlkUnavailableException> { runBlocking { client().byTitle("바다", 1) } }
-        assertEquals(3, server.findAll(getRequestedFor(path)).size)
+        assertEquals(4, server.findAll(getRequestedFor(path)).size)
     }
 
     @Test

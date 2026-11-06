@@ -15,7 +15,7 @@ import java.util.concurrent.TimeoutException
 
 /**
  * 국립중앙도서관 ISBN 서지정보 API 클라이언트. 모든 요청은 [NlkRateLimiter]를 거친다.
- * 시스템 오류(`000`)·5xx·타임아웃은 지수 백오프로 모두 3번 시도하고, 인증 오류는 즉시 실패한다.
+ * 시스템 오류(`000`)·5xx·타임아웃은 지수 백오프로 처음 1회와 재시도 3회(200/400/800ms)까지 모두 4번 시도하고, 인증 오류는 즉시 실패한다.
  */
 @Component
 class NlkClient(
@@ -116,7 +116,7 @@ class NlkClient(
 
     private companion object {
         const val PATH = "/seoji/SearchApi.do"
-        const val ATTEMPTS = 3
+        const val ATTEMPTS = 4
         val DATE: DateTimeFormatter = DateTimeFormatter.BASIC_ISO_DATE
     }
 }

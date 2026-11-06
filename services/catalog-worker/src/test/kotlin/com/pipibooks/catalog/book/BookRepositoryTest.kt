@@ -62,4 +62,17 @@ class BookRepositoryTest(
             assertFalse(again.cardFieldsChanged)
             assertEquals(Instant.parse("2026-11-05T01:00:00Z"), repository.findByIsbn("9788912345679")!!.fetchedAt)
         }
+
+    @Test
+    fun `깨진 표지를 다시 받아도 변경으로 보지 않는다`() =
+        runBlocking {
+            repository.upsert(book())
+            repository.clearCover(repository.findByIsbn("9788912345679")!!.id)
+
+            val again = repository.upsert(book())
+
+            assertFalse(again.coverUrlChanged)
+            assertFalse(again.cardFieldsChanged)
+            assertEquals(null, repository.findByIsbn("9788912345679")!!.coverUrl)
+        }
 }
