@@ -6,8 +6,8 @@ import tools.jackson.databind.json.JsonMapper
 /**
  * 국립중앙도서관 ISBN 서지정보 API(`/seoji/SearchApi.do`)의 응답 모델과 파싱.
  *
- * 응답 봉투는 공개 문서 기준 가정이다(실측 전). 성공: `{TOTAL_COUNT, PAGE_NO, docs:[{...}]}`,
- * 오류: `{RESULT:"ERROR", ERR_CODE:"010", ERR_MESSAGE:"..."}`. 실제 키를 받아 측정하면 이 파일만 고친다.
+ * 응답 봉투는 2026-11-06 실측으로 확인했다(스펙 §3). 성공: `{TOTAL_COUNT, PAGE_NO, docs:[{...}]}`,
+ * 오류: `{RESULT:"ERROR", ERR_CODE:"010", ERR_MESSAGE:"..."}`. 오류도 HTTP 200으로 온다.
  */
 data class NlkRecord(
     val title: String? = null,
@@ -17,6 +17,7 @@ data class NlkRecord(
     val setIsbn: String? = null,
     val publishPredate: String? = null,
     val kdc: String? = null,
+    val subject: String? = null,
     val page: String? = null,
     val titleUrl: String? = null,
     val bookIntroduction: String? = null,
@@ -91,6 +92,7 @@ internal object NlkParser {
             setIsbn = n.text("SET_ISBN"),
             publishPredate = n.text("PUBLISH_PREDATE"),
             kdc = n.text("KDC"),
+            subject = n.text("SUBJECT"),
             page = n.text("PAGE"),
             titleUrl = n.text("TITLE_URL"),
             bookIntroduction = n.text("BOOK_INTRODUCTION"),

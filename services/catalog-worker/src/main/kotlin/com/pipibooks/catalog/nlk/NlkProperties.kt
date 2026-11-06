@@ -9,7 +9,7 @@ data class NlkProperties(
     @DefaultValue("https://www.nl.go.kr") val baseUrl: String = "https://www.nl.go.kr",
     @DefaultValue("") val certKey: String = "",
     @DefaultValue("1.0") val permitsPerSecond: Double = 1.0,
-    @DefaultValue("50") val pageSize: Int = 50,
+    @DefaultValue("500") val pageSize: Int = 500,
     @DefaultValue("200") val retryBaseDelayMs: Long = 200,
     @DefaultValue("10") val timeoutSeconds: Long = 10,
 )

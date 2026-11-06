@@ -46,7 +46,7 @@ object BookNormalizer {
                 author = author(r.author),
                 publisher = clean(r.publisher),
                 publishPredate = date(r.publishPredate),
-                kdc = clean(r.kdc)?.take(KDC_MAX),
+                kdc = (clean(r.kdc) ?: major(r.subject))?.take(KDC_MAX),
                 pages = clean(r.page)?.takeWhile(::isAsciiDigit)?.toIntOrNull(),
                 coverUrl = clean(r.titleUrl)?.replaceFirst(Regex("^http://", RegexOption.IGNORE_CASE), "https://"),
                 introduction = clean(r.bookIntroduction),
@@ -88,13 +88,29 @@ object BookNormalizer {
             null
         }
 
-    private fun author(s: String?): String? =
-        clean(s)
-            ?.split(';', ',')
-            ?.mapNotNull { stripRoles(it.trim()).takeIf(String::isNotEmpty) }
-            ?.distinct()
-            ?.joinToString(", ")
-            ?.takeIf { it.isNotEmpty() }
+    /** `KDC`가 비는 실제 응답에서 `SUBJECT`의 한 자리 숫자(KDC 대분류)를 대신 쓴다. */
+    private fun major(subject: String?): String? = clean(subject)?.takeIf { it.length == 1 && isAsciiDigit(it[0]) }
+
+    /**
+     * `역할 : 이름;역할 : 이름;` 형식이면 역할을 떼고 이름만 원래 순서로 잇는다(콜론 앞뒤 공백은 없을 수도 있다).
+     * 콜론이 없는 형식(`홍길동 지음`, `A, B`)은 뒤쪽 역할어만 정리한다. 같은 이름은 한 번만 쓴다.
+     */
+    private fun author(s: String?): String? {
+        val text = clean(s) ?: return null
+        val names =
+            if (text.contains(':')) {
+                text.split(';').mapNotNull { segment ->
+                    if (segment.contains(':')) clean(segment.substringAfter(':')) else stripRoles(segment.trim())
+                }
+            } else {
+                text.split(';', ',').map { stripRoles(it.trim()) }
+            }
+        return names
+            .filter(String::isNotEmpty)
+            .distinct()
+            .joinToString(", ")
+            .takeIf { it.isNotEmpty() }
+    }
 
     private fun stripRoles(name: String): String {
         var current = name
