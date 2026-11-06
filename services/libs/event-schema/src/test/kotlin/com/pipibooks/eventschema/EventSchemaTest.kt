@@ -3,6 +3,7 @@ package com.pipibooks.eventschema
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import java.time.Instant
 import java.time.LocalDate
 import java.util.UUID
@@ -39,6 +40,27 @@ class EventSchemaTest {
         assertFalse(fields.containsKey("memberId"))
         assertFalse(fields.containsKey("cardId"))
         assertEquals(sparse, UserEventMessage.fromFields(fields))
+    }
+
+    @Test
+    fun `형식이 틀린 필드는 IllegalArgumentException이다`() {
+        val ok = full.toFields()
+        listOf(
+            "occurredAt" to "어제",
+            "receivedAt" to "2026-13-45",
+            "cardId" to "abc",
+            "slideIndex" to "1.5",
+            "memberId" to "",
+            "eventId" to "not-a-uuid",
+            "type" to "UNKNOWN",
+        ).forEach { (k, v) ->
+            assertThrows<IllegalArgumentException>(k) { UserEventMessage.fromFields(ok + (k to v)) }
+        }
+    }
+
+    @Test
+    fun `필수 필드가 없으면 IllegalArgumentException이다`() {
+        assertThrows<IllegalArgumentException> { UserEventMessage.fromFields(full.toFields() - "type") }
     }
 
     @Test

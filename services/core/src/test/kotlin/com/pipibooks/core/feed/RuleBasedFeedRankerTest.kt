@@ -28,10 +28,14 @@ class RuleBasedFeedRankerTest {
     }
 
     @Test
-    fun `시드가 다르면 순서가 달라질 수 있다`() {
+    fun `무작위 항은 시드에 따라 순서를 바꾼다`() {
+        val onlyRandom = FeedProperties.Weights(interest = 0.0, shelf = 0.0, popularity = 0.0, freshness = 0.0)
         val cards = (1L..30L).map { card(it) }
+        val orders = (1L..5L).map { ranker(onlyRandom).rank(cards, empty, it) }
 
-        assertTrue(ranker().rank(cards, empty, 1) != ranker().rank(cards, empty, 2))
+        // 30장의 순열이 5개 시드에서 모두 같을 확률은 사실상 0이다
+        assertTrue(orders.toSet().size > 1)
+        orders.forEach { assertEquals(cards.map { c -> c.cardId }.toSet(), it.toSet()) }
     }
 
     @Test

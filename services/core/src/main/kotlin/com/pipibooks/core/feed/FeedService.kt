@@ -7,7 +7,7 @@ import com.pipibooks.core.card.CardQuery
 import com.pipibooks.core.card.CardView
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
-import java.time.Instant
+import java.time.Clock
 
 /** 요청자. 둘 다 없을 수 있다(익명 ID 헤더 없는 비로그인). */
 data class Viewer(
@@ -27,6 +27,7 @@ class FeedService(
     private val sessions: FeedSessionStore,
     private val seen: SeenCardReader,
     private val props: FeedProperties,
+    private val clock: Clock,
 ) {
     fun page(
         viewer: Viewer,
@@ -40,7 +41,8 @@ class FeedService(
             if (existing != null) Triple(existing.first, existing.second, offset) else newSession(viewer)
 
         val ids = list.drop(start).take(props.pageSize)
-        val next = if (start + props.pageSize < list.size) cursorFor(sessionId, start + props.pageSize) else null
+        val end = start.toLong() + props.pageSize
+        val next = if (end < list.size) cursorFor(sessionId, end.toInt()) else null
         return FeedPage(cards.publishedViews(ids), next)
     }
 
@@ -48,7 +50,7 @@ class FeedService(
         val sessionId = Tsid.format(Tsid.next())
         val excluded = viewer.anonymousId?.let { seen.seenCardIds(it) }.orEmpty()
         val candidates = cards.candidates(props.candidateLimit).filter { it.cardId !in excluded }
-        val ctx = RankContext(emptySet(), emptyMap(), emptyMap(), Instant.now())
+        val ctx = RankContext(emptySet(), emptyMap(), emptyMap(), clock.instant())
         val list = ranker.rank(candidates, ctx, sessionId.toLong()).take(props.sessionSize)
         sessions.save(sessionId, list, props.sessionTtl)
         return Triple(sessionId, list, 0)

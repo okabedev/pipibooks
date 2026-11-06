@@ -1,6 +1,7 @@
 package com.pipibooks.eventschema
 
 import java.time.Instant
+import java.time.format.DateTimeParseException
 import java.util.UUID
 
 /** Redis Stream `events:user`에 싣는 사용자 이벤트. */
@@ -41,20 +42,37 @@ data class UserEventMessage(
         /** [toFields]의 역변환. 필수 필드가 없거나 형식이 틀리면 [IllegalArgumentException]. */
         fun fromFields(f: Map<String, String>): UserEventMessage {
             fun req(k: String) = requireNotNull(f[k]) { "필수 필드 없음: $k" }
+
+            fun <T : Any> parse(
+                k: String,
+                block: (String) -> T,
+            ): T =
+                try {
+                    block(req(k))
+                } catch (e: IllegalArgumentException) {
+                    throw e
+                } catch (e: DateTimeParseException) {
+                    throw IllegalArgumentException("형식이 틀린 필드: $k", e)
+                }
+
+            fun <T : Any> optional(
+                k: String,
+                block: (String) -> T,
+            ): T? = if (f.containsKey(k)) parse(k, block) else null
             return UserEventMessage(
-                eventId = UUID.fromString(req("eventId")),
-                type = EventType.valueOf(req("type")),
-                memberId = f["memberId"]?.toLong(),
+                eventId = parse("eventId", UUID::fromString),
+                type = parse("type", EventType::valueOf),
+                memberId = optional("memberId", String::toLong),
                 anonymousId = f["anonymousId"],
                 sessionId = f["sessionId"],
-                cardId = f["cardId"]?.toLong(),
-                bookId = f["bookId"]?.toLong(),
-                slideIndex = f["slideIndex"]?.toInt(),
-                dwellMs = f["dwellMs"]?.toLong(),
+                cardId = optional("cardId", String::toLong),
+                bookId = optional("bookId", String::toLong),
+                slideIndex = optional("slideIndex", String::toInt),
+                dwellMs = optional("dwellMs", String::toLong),
                 platform = f["platform"],
                 appVersion = f["appVersion"],
-                occurredAt = Instant.parse(req("occurredAt")),
-                receivedAt = Instant.parse(req("receivedAt")),
+                occurredAt = parse("occurredAt", Instant::parse),
+                receivedAt = parse("receivedAt", Instant::parse),
             )
         }
     }

@@ -12,9 +12,8 @@ import java.time.Clock
 @Component
 class SeenCardReader(
     private val redis: StringRedisTemplate,
+    private val clock: Clock,
 ) {
-    private val clock: Clock = Clock.systemUTC()
-
     fun seenCardIds(anonymousId: String): Set<Long> {
         val since = clock.millis() - RedisKeys.SEEN_CARDS_WINDOW.toMillis()
         val key = RedisKeys.seenCards(anonymousId)

@@ -61,6 +61,7 @@ class FeedControllerTest(
         redis.opsForZSet().add(RedisKeys.seenCards(anon), cardId.toString(), System.currentTimeMillis().toDouble())
 
         mockMvc.get("/v1/feed") { header("X-Anonymous-Id", anon) }.andExpect {
+            status { isOk() }
             jsonPath("$.items.length()") { value(2) }
         }
     }

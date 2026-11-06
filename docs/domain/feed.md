@@ -21,8 +21,8 @@
 ### 본 카드
 - 기준은 최근 7일 안의 `CARD_IMPRESSION`뿐이다. 응답만 하고 화면에 나오지 않은 카드는 빼지 않는다.
 - Redis ZSET `RedisKeys.seenCards(anonymousId)`: 멤버 = 카드 ID(10진수), 점수 = 노출 시각(epoch ms).
-- 쓰기(event-collector): `ZADD`(점수 = `occurredAt` ms), `ZREMRANGEBYSCORE -inf (now-7d)`, `EXPIRE 7d`. 단순 집합 + 키 TTL은 매일 오는 사용자의 키가 만료되지 않아 쓰지 않는다.
-- 읽기(core): `ZRANGEBYSCORE (now-7d) +inf`. `X-Anonymous-Id`가 UUID가 아니면 없는 것으로 보고 아무것도 빼지 않는다.
+- 쓰기(event-collector): `ZADD`(점수 = `occurredAt` ms), `ZREMRANGEBYSCORE -inf now-7d`, `EXPIRE 7d`. 단순 집합 + 키 TTL은 매일 오는 사용자의 키가 만료되지 않아 쓰지 않는다.
+- 읽기(core): `ZRANGEBYSCORE now-7d +inf`. `X-Anonymous-Id`가 UUID가 아니면 없는 것으로 보고 아무것도 빼지 않는다.
 
 ### 세션과 커서
 - 커서 없는 요청은 후보를 정렬해 상위 500개(`feed.session-size`)를 Redis(`RedisKeys.feedSession`)에 30분(`feed.session-ttl`) 보관한다. 시드는 세션 ID(`Tsid`).

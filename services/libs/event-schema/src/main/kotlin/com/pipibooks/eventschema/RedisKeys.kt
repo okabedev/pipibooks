@@ -14,8 +14,8 @@ object RedisKeys {
      * 본 카드 윈도우. [seenCards]는 ZSET이다(멤버 = 카드 ID 10진수, 점수 = 노출 시각 epoch millis).
      *
      * 쓰는 쪽(event-collector, `CARD_IMPRESSION`만): `ZADD`(점수 = occurredAt ms),
-     * `ZREMRANGEBYSCORE -inf (now - SEEN_CARDS_WINDOW)`, `EXPIRE SEEN_CARDS_WINDOW`.
-     * 읽는 쪽(core): `ZRANGEBYSCORE (now - SEEN_CARDS_WINDOW) +inf`.
+     * `ZREMRANGEBYSCORE -inf now-SEEN_CARDS_WINDOW`, `EXPIRE SEEN_CARDS_WINDOW`.
+     * 읽는 쪽(core): `ZRANGEBYSCORE now-SEEN_CARDS_WINDOW +inf`.
      */
     val SEEN_CARDS_WINDOW: Duration = Duration.ofDays(7)
 

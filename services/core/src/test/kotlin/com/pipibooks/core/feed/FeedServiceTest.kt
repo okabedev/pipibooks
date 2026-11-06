@@ -130,13 +130,13 @@ class FeedServiceTest(
     fun `세션 중 숨겨진 카드는 다음 페이지에서 빠진다`() {
         val published = publish(25)
         val p1 = service.page(viewer, null)
-        jdbc.update("UPDATE core.card SET status = 'HIDDEN' WHERE id = ?", published[0])
+        val hidden = published.first { it !in ids(p1) } // 세션에 있지만 첫 페이지에는 없는 카드
+        jdbc.update("UPDATE core.card SET status = 'HIDDEN' WHERE id = ?", hidden)
 
         val p2 = service.page(viewer, p1.nextCursor)
-        val rest = ids(p2)
 
-        assertTrue(published[0] !in rest)
-        assertEquals(5 - if (published[0] in ids(p1)) 0 else 1, rest.size)
+        assertTrue(hidden !in ids(p2))
+        assertEquals(4, p2.items.size)
     }
 
     @Test
@@ -151,6 +151,19 @@ class FeedServiceTest(
         val sid = CursorCodec.decode(p2.nextCursor!!)["s"]!!
         assertEquals("20", CursorCodec.decode(p2.nextCursor)["o"])
         assertTrue(redis.hasKey(RedisKeys.feedSession(sid)))
+    }
+
+    @Test
+    fun `offset이 Int 최대값이어도 빈 목록과 nextCursor null이다`() {
+        publish(3)
+        service.page(viewer, null)
+        val sessionId = redis.keys("feed:session:*").single().removePrefix("feed:session:")
+        val cursor = CursorCodec.encode(mapOf("s" to sessionId, "o" to Int.MAX_VALUE.toString()))
+
+        val page = service.page(viewer, cursor)
+
+        assertTrue(page.items.isEmpty())
+        assertNull(page.nextCursor)
     }
 
     @Test
