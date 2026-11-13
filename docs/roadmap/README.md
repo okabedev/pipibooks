@@ -6,7 +6,7 @@
 
 | 마일스톤 | 범위 | 상태 |
 |---|---|---|
-| [M0 설계](m0-design.md) | `docs/` 구성, CLAUDE.md, 스킬, Git 레포와 브랜치 | 진행 |
+| [M0 설계](m0-design.md) | `docs/` 구성, CLAUDE.md, 스킬, Git 레포와 브랜치 | 완료 |
 | [M1 기반](m1-foundation.md) | Gradle 멀티 모듈 뼈대, 웹 뼈대, 로컬 Compose(PostgreSQL), Flyway, 공통 오류 응답, 헬스 체크 | 대기 |
 | [M2 인증](m2-authentication.md) | 카카오 로그인, JWT, 회원·닉네임, 탈퇴 | 대기 |
 | [M3 도서](m3-books.md) | `services/client`(nlk, kakao), 검색, 도서 상세, 도서 저장·병합, KDC 분류 | 대기 |
