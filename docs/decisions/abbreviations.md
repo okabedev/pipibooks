@@ -1,0 +1,21 @@
+# 축약어 목록
+
+사용자가 승인한 축약어만 식별자와 문서에 쓸 수 있다. 허용 기준은 [이름 짓기와 언어](../conventions/naming.md)에 있다.
+
+## 허용 기준
+
+- 고유 명사로 쓰이는 축약: ISBN, KDC, JWT, API 등
+- 긴 명칭
+- 3 단어 이상으로 이루어진 명칭
+
+허용 기준에 해당하는 축약어도 사용자의 승인을 받고 이 목록에 행을 더한 뒤에 쓴다.
+
+## 승인된 축약어
+
+| 축약어 | 원래 이름 | 승인일 |
+|---|---|---|
+| API | Application Programming Interface | 2026-11-14 |
+| ISBN | International Standard Book Number | 2026-11-14 |
+| JWT | JSON Web Token | 2026-11-14 |
+| KDC | Korean Decimal Classification (한국십진분류법) | 2026-11-14 |
+| NLK | National Library of Korea (국립중앙도서관) | 2026-11-14 |
