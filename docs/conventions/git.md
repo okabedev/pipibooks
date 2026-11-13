@@ -21,9 +21,11 @@ GitHub 공개 레포 `pipibooks`를 원격 저장소로 쓴다.
 
 ## 릴리스 절차
 
-1. `develop`에서 `release/0.N.0` 생성
-2. `release/0.N.0` → `main` PR, 병합
-3. `main`에 태그 `v0.N.0`을 달고 push
+버전은 마일스톤 파일의 "태그" 항목을 쓴다. 예: M1은 `0.1.0`, M7은 `1.0.0`.
+
+1. `develop`에서 `release/<버전>` 생성
+2. `release/<버전>` → `main` PR, 병합
+3. `main`에 태그 `v<버전>`을 달고 push
 4. `main`을 `develop`에 다시 병합
 
 push, PR 병합, 태그 push는 외부에 공개되는 작업이므로 하기 전에 사용자에게 확인한다.

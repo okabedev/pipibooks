@@ -21,7 +21,7 @@
 
 ### 이름 짓기와 언어
 - 가독성을 최우선한다. 의미를 흐리는 축약은 하지 않는다.
-- 축약어는 승인된 것만 쓴다(현재 NLK 하나, ISBN·KDC·JWT·API 같은 고유 명사는 예외).
+- 축약어는 승인된 것만 쓴다(승인된 것은 [축약어 목록](docs/decisions/abbreviations.md)에 있다).
 - 식별자는 영어로, 주석·문서·커밋 요약은 한국어로 쓴다.
 - 원문: [이름 짓기와 언어](docs/conventions/naming.md), [축약어 목록](docs/decisions/abbreviations.md)
 
@@ -32,7 +32,7 @@
 - 원문: [문서 규칙](docs/conventions/documentation.md)
 
 ### Git
-- Git Flow: `feature/*`에서 작업하고 PR로 `develop`에 병합한다. 마일스톤이 끝나면 `release/*`를 거쳐 `main`에 병합하고 `v0.N.0` 태그를 단다(M0는 생략).
+- Git Flow: `feature/*`에서 작업하고 PR로 `develop`에 병합한다. 마일스톤이 끝나면 `release/*`를 거쳐 `main`에 병합하고 마일스톤 파일의 태그(`v0.N.0`, 1차 목표 완료는 `v1.0.0`, M0는 생략)를 단다.
 - 커밋은 Conventional Commits, scope는 `api`, `worker`, `core`, `client`, `support`, `web`, `mobile`, `infra`, `docs` 중 하나다.
 - push, PR 병합, 태그 push 전에는 사용자에게 확인한다.
 - 원문: [Git 규칙](docs/conventions/git.md)
