@@ -14,4 +14,8 @@
 
 | 축약어 | 원래 이름 | 승인일 |
 |---|---|---|
+| API | Application Programming Interface | 2026-11-14 |
+| ISBN | International Standard Book Number | 2026-11-14 |
+| JWT | JSON Web Token | 2026-11-14 |
+| KDC | Korean Decimal Classification (한국십진분류법) | 2026-11-14 |
 | NLK | National Library of Korea (국립중앙도서관) | 2026-11-14 |

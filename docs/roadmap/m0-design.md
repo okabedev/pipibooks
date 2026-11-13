@@ -28,7 +28,8 @@
 ### 진행 중에 내린 결정
 - M0는 릴리스와 태그를 생략한다 ([0004](../decisions/0004-m0-release-skipped.md))
 - 원본 설계서는 기록으로 보존한다 ([0005](../decisions/0005-design-document-preserved.md))
+- v1.0.0 뒤의 태그는 M8 `v1.1.0`, M9 `v1.2.0` ([0006](../decisions/0006-tags-after-v1.md))
+- API, ISBN, JWT, KDC를 축약어로 승인 ([축약어 목록](../decisions/abbreviations.md))
 
 ### 주의할 점
-- M8·M9의 태그 번호는 정해지지 않았다. M8 시작 전에 사용자 승인이 필요하다.
-- ISBN, KDC, JWT, API를 승인 없이 쓸 수 있는지 사용자 확인이 필요하다([축약어 목록](../decisions/abbreviations.md)).
+- push, PR, 병합은 사용자가 아직 보류했다. 문서를 검토받은 뒤 진행한다.

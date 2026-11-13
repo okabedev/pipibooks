@@ -32,7 +32,7 @@
 - 원문: [문서 규칙](docs/conventions/documentation.md)
 
 ### Git
-- Git Flow: `feature/*`에서 작업하고 PR로 `develop`에 병합한다. 마일스톤이 끝나면 `release/*`를 거쳐 `main`에 병합하고 마일스톤 파일의 태그(`v0.N.0`, 1차 목표 완료는 `v1.0.0`, M0는 생략)를 단다.
+- Git Flow: `feature/*`에서 작업하고 PR로 `develop`에 병합한다. 마일스톤이 끝나면 `release/*`를 거쳐 `main`에 병합하고 마일스톤 파일의 태그(`v0.N.0`, M7은 `v1.0.0`, M8·M9는 `v1.1.0`·`v1.2.0`, M0는 생략)를 단다.
 - 커밋은 Conventional Commits, scope는 `api`, `worker`, `core`, `client`, `support`, `web`, `mobile`, `infra`, `docs` 중 하나다.
 - push, PR 병합, 태그 push 전에는 사용자에게 확인한다.
 - 원문: [Git 규칙](docs/conventions/git.md)
