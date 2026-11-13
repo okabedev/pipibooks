@@ -1,6 +1,6 @@
 # Git 규칙
 
-`commit-commands`, `superpowers:finishing-a-development-branch` 같은 기존 스킬도 이 문서를 따른다.
+Git 규칙과 이름 짓기 규칙은 따로 스킬로 만들지 않는다. `commit-commands`, `superpowers:finishing-a-development-branch`와 역할이 겹치기 때문이다. 대신 이 기존 스킬들이 이 문서를 따른다.
 
 ## 원격 저장소
 
