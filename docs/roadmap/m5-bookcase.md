@@ -1,7 +1,7 @@
 # M5 나의 책장
 
 - 상태: 대기
-- 브랜치: `feature/m5-bookshelf`
+- 브랜치: `feature/m5-bookcase`
 - 계획: (마일스톤을 시작할 때 작성하고 링크)
 - 태그: `v0.5.0`
 

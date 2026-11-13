@@ -7,7 +7,7 @@
 - [서비스 개요](product/overview.md): 의도, 목표, 비목표, 반목표
 - [도서 정보](product/books.md): 신간, TOP 100, 주간·월간 인기, 카테고리
 - [도서 평가](product/reviews.md): 평점, 코멘트, 독서 기간
-- [나의 책장](product/bookshelf.md): 위시, 평가한 책, 통계
+- [나의 책장](product/bookcase.md): 위시, 평가한 책, 통계
 - [회원](product/members.md): 카카오 로그인, 닉네임, 탈퇴
 
 ## 구조

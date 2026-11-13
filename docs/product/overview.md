@@ -31,5 +31,5 @@
 
 - [도서 정보](books.md): 신간, 순위, 카테고리
 - [도서 평가](reviews.md)
-- [나의 책장](bookshelf.md): 위시, 평가한 책, 통계
+- [나의 책장](bookcase.md): 위시, 평가한 책, 통계
 - [회원](members.md)

@@ -11,7 +11,7 @@
 | [M2 인증](m2-authentication.md) | 카카오 로그인, JWT, 회원·닉네임, 탈퇴 | 대기 |
 | [M3 도서](m3-books.md) | `services/client`(nlk, kakao), 검색, 도서 상세, 도서 저장·병합, KDC 분류 | 대기 |
 | [M4 평가](m4-reviews.md) | 평가 작성·수정·삭제, 도서 상세의 코멘트 목록 | 대기 |
-| [M5 나의 책장](m5-bookshelf.md) | 위시, 평가한 책 목록, 통계 | 대기 |
+| [M5 나의 책장](m5-bookcase.md) | 위시, 평가한 책 목록, 통계 | 대기 |
 | [M6 워커](m6-worker.md) | 신간 수집, 데이터 보충, 순위 집계(카테고리 포함), 홈·카테고리 화면 | 대기 |
 | [M7 배포](m7-deployment.md) | 운영 Compose, nginx, Cloudflare Tunnel, 백업, `pipibooks.com` 공개 → 1차 목표 완료 | 대기 |
 | [M8 모바일 기반](m8-mobile-foundation.md) | Expo 개발 빌드, 카카오 로그인, API 연동 | 대기 |
